@@ -294,8 +294,15 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
     <p>Sign in to your Nexus ERP workspace</p>
     <label>Email<input type="email" id="liEmail" required></label>
     <label>Password<input type="password" id="liPass" required value="demo1234"></label>
+    <label>Sign in as<select id="liRole"><option>Administrator</option><option>Manager</option><option>Analyst</option><option>Viewer</option></select></label>
     <button class="btn btn-primary btn-lg" type="submit">Sign In <i class="fa-solid fa-arrow-right"></i></button>
-    <small class="muted">Demo environment — any credentials work.</small>
+    <small class="muted" style="margin-top:14px">Demo environment — any credentials work.</small>
+    <div class="chips" style="justify-content:center;margin-top:12px">
+      <button type="button" class="chip" data-quick="Administrator">Admin</button>
+      <button type="button" class="chip" data-quick="Manager">Manager</button>
+      <button type="button" class="chip" data-quick="Analyst">Analyst</button>
+      <button type="button" class="chip" data-quick="Viewer">Viewer</button>
+    </div>
   </form>
 </div>
 
@@ -321,7 +328,7 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
     <div class="nav-sec">System</div>
     <a class="nav-item" data-view="settings" title="Settings"><i class="fa-solid fa-gear"></i><span class="nav-label">Settings</span></a>
   </nav>
-  <div class="sidebar-foot"><div class="sys-card"><span class="pulse"></span> All systems operational</div></div>
+  <div class="sidebar-foot"><div class="sys-card"><span class="pulse"></span><div><b>All systems operational</b><small id="sysRole" class="muted" style="display:block;font-size:11px">Signed in as Administrator</small></div></div></div>
 </aside>
 <div id="sbOverlay"></div>
 
@@ -376,7 +383,7 @@ const hoursAgoISO=h=>new Date(Date.now()-h*36e5).toISOString();
 const gridC=()=>getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
 function timeAgo(iso){const s=(Date.now()-new Date(iso))/1e3;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';if(s<604800)return Math.floor(s/86400)+'d ago';return fmtDate(iso);}
 function avatar(name,size=32){const h=[...name].reduce((a,c)=>a+c.charCodeAt(0),0)%360;const ini=name.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return `<span class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.36)}px;background:hsl(${h} 70% 45% / .16);color:hsl(${h} 72% 45%)">${esc(ini)}</span>`;}
-const STYLE={'Pending':'b-amber','Processing':'b-blue','Shipped':'b-violet','Delivered':'b-green','Cancelled':'b-red','Paid':'b-green','Overdue':'b-red','Active':'b-green','On Leave':'b-amber','Approved':'b-blue','In Transit':'b-violet','Received':'b-green','Out of Stock':'b-red','Low Stock':'b-amber','In Stock':'b-green','VIP':'b-gold','Standard':'b-gray','New':'b-blue','Sales':'b-violet','Engineering':'b-blue','Finance':'b-green','Human Resources':'b-gold','Support':'b-pink','Marketing':'b-pink','Operations':'b-gray'};
+const STYLE={'Pending':'b-amber','Processing':'b-blue','Shipped':'b-violet','Delivered':'b-green','Cancelled':'b-red','Paid':'b-green','Partially Paid':'b-amber','Unpaid':'b-gray','Overdue':'b-red','Active':'b-green','On Leave':'b-amber','Approved':'b-blue','In Transit':'b-violet','Received':'b-green','Out of Stock':'b-red','Low Stock':'b-amber','In Stock':'b-green','VIP':'b-gold','Standard':'b-gray','New':'b-blue','Draft':'b-gray','Sent':'b-blue','Converted':'b-violet','Sales':'b-violet','Engineering':'b-blue','Finance':'b-green','Human Resources':'b-gold','Support':'b-pink','Marketing':'b-pink','Operations':'b-gray'};
 const badge=t=>`<span class="badge ${STYLE[t]||'b-gray'}">${esc(t)}</span>`;
 const FLAGS={'United States':'🇺🇸','United Kingdom':'🇬🇧','Mexico':'🇲🇽','Singapore':'🇸🇬','Germany':'🇩🇪','Canada':'🇨🇦','Australia':'🇦🇺','South Korea':'🇰🇷','United Arab Emirates':'🇦🇪','Sweden':'🇸🇪','China':'🇨🇳'};
 function pct(cur,prev){return prev>0?((cur-prev)/prev*100):null;}
@@ -411,15 +418,29 @@ function seed(){
     else if(age>12)status=pick(['Delivered','Shipped','Shipped','Processing']);
     else if(age>4)status=pick(['Shipped','Processing','Pending']);
     else status=pick(['Pending','Processing','Pending']);
-    orders.push({customerId:c.id,customerName:c.company,items,sub,tax,ship,total:sub+tax+ship,status,date:created.toISOString()});
+    orders.push({customerId:c.id,customerName:c.company,items,sub,tax,ship,total:sub+tax+ship,status,date:created.toISOString(),payments:[]});
   }
   orders.sort((a,b)=>new Date(a.date)-new Date(b.date));
   orders.forEach((o,i)=>o.id='ORD-'+(1001+i));
   orders.reverse();
+  orders.filter(o=>o.status==='Delivered').slice(0,10).forEach((o,i)=>{
+    if(Math.random()<.6){o.payments=[{id:'sp'+i,amount:o.total,method:pick(['Card','Bank Transfer','Cash']),date:daysAgoISO(ri(1,20))}];}
+    else if(Math.random()<.5){o.payments=[{id:'sp'+i,amount:Math.round(o.total/2),method:'Card',date:daysAgoISO(ri(1,20))}];}
+  });
+  const quotes=[];
+  for(let i=0;i<6;i++){
+    const age=ri(1,45);
+    const c=pick(customers);const used=new Set();const items=[];
+    const n=ri(1,3);
+    for(let k=0;k<n;k++){let p=pick(products);while(used.has(p.id))p=pick(products);used.add(p.id);items.push({productId:p.id,name:p.name,qty:ri(1,8),price:p.price});}
+    const sub=items.reduce((s,it)=>s+it.qty*it.price,0);const tax=sub*.08;const ship=sub>1000?0:25;
+    quotes.push({id:'QT-'+(2401+i),customerId:c.id,customerName:c.company,items,sub,tax,ship,total:sub+tax+ship,status:pick(['Draft','Sent','Approved']),date:new Date(Date.now()-age*864e5).toISOString()});
+  }
   const invoices=[];
   const src=orders.filter(o=>o.status!=='Cancelled').slice(0,10);
   src.forEach((o,i)=>{const issued=new Date(o.date);const due=new Date(issued.getTime()+30*864e5);const paid=Math.random()<.62;
-    invoices.push({id:'INV-'+(2401+i),customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:issued.toISOString(),due:due.toISOString(),status:paid?'Paid':(due<new Date()?'Overdue':'Pending'),paidOn:paid?new Date(issued.getTime()+ri(3,25)*864e5).toISOString():null});});
+    invoices.push({id:'INV-'+(2401+i),orderId:o.id,customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:issued.toISOString(),due:due.toISOString(),status:paid?'Paid':(due<new Date()?'Overdue':'Pending'),paidOn:paid?new Date(issued.getTime()+ri(3,25)*864e5).toISOString():null});o.invoiceId='INV-'+(2401+i);
+    if(paid&&!o.payments.length)o.payments.push({id:'ip'+i,amount:o.total,method:'Bank Transfer',date:issued.toISOString()});});
   const PD=[[0,2,40,'Approved',8],[1,7,60,'In Transit',4],[2,9,15,'Pending',18],[3,4,120,'Received',-6],[4,11,200,'Pending',25],[5,13,80,'Approved',12]];
   const pos=PD.map((d,i)=>{const s=suppliers[d[0]],p=products[d[1]];return {id:'PO-'+(9001+i),supplierId:s.id,supplierName:s.name,productId:p.id,productName:p.name,qty:d[2],cost:p.cost,status:d[3],eta:daysAgoISO(-d[4]),created:daysAgoISO(ri(10,40))};});
   const lowP=products.filter(p=>p.stock<=p.reorder);
@@ -430,20 +451,27 @@ function seed(){
   if(od)notifications.push({id:'ntf4',icon:'fa-clock',title:od+' invoice(s) overdue',desc:'Review outstanding receivables in Finance',time:hoursAgoISO(7),read:true});
   notifications.push({id:'ntf5',icon:'fa-file-invoice-dollar',title:'Payment received',desc:'INV-2401 settled by '+invoices[0].customerName,time:hoursAgoISO(2),read:true});
   const activities=[{icon:'fa-file-invoice-dollar',text:'Invoice INV-2401 paid by '+invoices[0].customerName,time:hoursAgoISO(2)},{icon:'fa-cart-shopping',text:`New order ${orders[0].id} from ${orders[0].customerName}`,time:hoursAgoISO(4)},{icon:'fa-truck',text:'PO-9002 shipped by Shenzhen Nova',time:hoursAgoISO(9)},{icon:'fa-user-plus',text:'New customer Pinnacle Group added',time:hoursAgoISO(26)},{icon:'fa-box',text:'Stock received: 120 × Glide Wireless Mouse',time:hoursAgoISO(31)},{icon:'fa-user-tie',text:'Elena Petrova completed onboarding',time:hoursAgoISO(50)},{icon:'fa-chart-line',text:'Quarterly sales report generated',time:hoursAgoISO(74)},{icon:'fa-tags',text:'Price updated on Vertex 4K Monitor 27"',time:hoursAgoISO(96)}].map((a,i)=>({id:'act'+i,...a}));
-  return {version:1,profile:{name:'Alex Morgan',email:'alex.morgan@nexuserp.io',role:'Administrator'},prefs:{emailNotif:true,digest:false,lowStock:true},ui:{collapsed:false},theme:'light',seq:{order:1065,product:1015,cust:511,emp:211,sup:307,po:9007,inv:2411},products,customers,employees,suppliers,orders,invoices,pos,notifications,activities};
+  const movements=[];
+  const mv=[['PRD-1014',40,'PO Received','PO-9003'],['PRD-1006',-12,'Sale','ORD-1028'],['PRD-1003',-5,'Sale','ORD-1031'],['PRD-1001',60,'PO Received','PO-9001'],['PRD-1008',-3,'Manual Adjustment','']];
+  mv.forEach((m,i)=>movements.push({id:'ms'+i,productId:m[0],productName:(products.find(p=>p.id===m[0])||{}).name||'Unknown',delta:m[1],reason:m[2],ref:m[3],by:'Alex Morgan',time:hoursAgoISO((i+1)*7)}));
+  return {version:2,profile:{name:'Alex Morgan',email:'alex.morgan@nexuserp.io',role:'Administrator'},prefs:{emailNotif:true,digest:false,lowStock:true},ui:{collapsed:false},theme:'light',seq:{order:1065,product:1015,cust:511,emp:211,sup:307,po:9007,inv:2411,quote:2407},products,customers,employees,suppliers,orders,invoices,quotes,pos,notifications,activities,movements};
 }
 let db;
 function save(){localStorage.setItem(LS_KEY,JSON.stringify(db));}
-function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.orders)&&d.version===1){db=d;return;}}}catch(e){}db=seed();save();}
+function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.orders)&&(d.version===1||d.version===2)){if(!d.quotes)d.quotes=[];if(!d.movements)d.movements=[];if(!d.seq)d.seq={};if(!d.seq.quote)d.seq.quote=2407;if(!Array.isArray(d.orders[0].payments))d.orders.forEach(o=>o.payments=o.payments||[]);d.version=2;save();db=d;return;}}}catch(e){}db=seed();save();}
 
 /* ================= STATE ================= */
 let currentView='';
 let procTab='po';
+let ordersTab='orders';
+let invTab='products';
 let charts=[];
 const destroyCharts=()=>{charts.forEach(c=>c.destroy());charts=[];};
 const ctl={
   orders:{q:'',status:'all',sortKey:'date',sortDir:-1,page:1,per:8},
+  quotes:{q:'',page:1,per:8},
   inventory:{q:'',cat:'all',page:1,per:10},
+  movements:{q:'',page:1,per:10},
   customers:{q:'',tier:'all',page:1,per:8},
   hr:{q:'',dept:'all',page:1,per:8}
 };
@@ -476,8 +504,36 @@ function bindPager(c){$$('#view [data-pg]').forEach(b=>b.onclick=()=>{c.page+=+b
 function bindSearch(sel,c){const el=$(sel);if(!el)return;let t;el.addEventListener('input',()=>{c.q=el.value;clearTimeout(t);t=setTimeout(()=>{c._focus=true;c.page=1;rerender();},350);});el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(t);c.q=el.value;c._focus=true;c.page=1;rerender();}});}
 function restoreFocus(c,sel){if(c._focus){const el=$(sel);if(el){el.focus();const v=el.value;el.value='';el.value=v;}c._focus=false;}}
 function animateKpis(){$$('#view .kpi-val[data-num]').forEach(el=>{const target=parseFloat(el.dataset.num),fmt=el.dataset.fmt,t0=performance.now(),dur=750;function step(t){const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3),v=target*e;el.textContent=fmt==='money'?money(v):Math.round(v).toLocaleString('en-US');if(p<1)requestAnimationFrame(step);}requestAnimationFrame(step);});}
-function applyStock(o,dir){o.items.forEach(it=>{const p=db.products.find(x=>x.id===it.productId);if(p)p.stock=Math.max(0,p.stock+dir*it.qty);});}
-function changeStatus(o,ns){if(o.status===ns)return;if(ns==='Cancelled'&&o.status!=='Cancelled')applyStock(o,1);if(ns!=='Cancelled'&&o.status==='Cancelled')applyStock(o,-1);o.status=ns;}
+function applyStock(o,dir,reason,ref){o.items.forEach(it=>{const p=db.products.find(x=>x.id===it.productId);if(p){p.stock=Math.max(0,p.stock+dir*it.qty);logMovement(p.id,dir*it.qty,reason||'Adjustment',ref||o.id);}});}
+function changeStatus(o,ns){if(o.status===ns)return;if(ns==='Cancelled'&&o.status!=='Cancelled')applyStock(o,1,'Cancellation',o.id);if(ns!=='Cancelled'&&o.status==='Cancelled')applyStock(o,-1,'Sale',o.id);o.status=ns;}
+
+/* ================= PERMISSIONS ================= */
+const ROLE_RANK={Viewer:1,Analyst:2,Manager:3,Administrator:4};
+function can(p){return (ROLE_RANK[db.profile.role]||1)>=(p==='view'?1:p==='export'?2:p==='create'?3:p==='edit'?3:4);}
+function guard(p,msg){if(!can(p)){toast(msg||'Insufficient permissions for this action','fa-lock','warn');return false;}return true;}
+
+/* ================= STOCK MOVEMENTS / PAYMENTS / INVOICES ================= */
+function logMovement(productId,delta,reason,ref){
+  const p=db.products.find(x=>x.id===productId);
+  db.movements.unshift({id:'m'+Date.now()+Math.floor(Math.random()*999),productId,productName:p?p.name:'Deleted product',delta,reason:reason||'Adjustment',ref:ref||'',by:db.profile.name,time:new Date().toISOString()});
+  db.movements=db.movements.slice(0,500);
+}
+function orderPaid(o){return (o.payments||[]).reduce((s,p)=>s+p.amount,0);}
+function payStatus(o){if(o.status==='Cancelled')return'Cancelled';const t=o.total,paid=orderPaid(o);if(paid>=t-0.005)return'Paid';if(paid>0)return'Partially Paid';return'Unpaid';}
+function createInvoiceForOrder(o){
+  const ex=db.invoices.find(i=>i.orderId===o.id);if(ex)return ex;
+  const inv={id:'INV-'+(db.seq.inv++),orderId:o.id,customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:new Date().toISOString(),due:new Date(Date.now()+30*864e5).toISOString(),status:'Pending',paidOn:null};
+  db.invoices.unshift(inv);o.invoiceId=inv.id;
+  return inv;
+}
+function convertQuote(id){
+  const q=db.quotes.find(x=>x.id===id);if(!q||q.status==='Converted')return;
+  const order={id:'ORD-'+(db.seq.order++),customerId:q.customerId,customerName:q.customerName,items:q.items.map(i=>({...i})),sub:q.sub,tax:q.tax,ship:q.ship,total:q.total,status:'Pending',date:new Date().toISOString(),payments:[],quoteId:q.id};
+  db.orders.unshift(order);applyStock(order,-1,'Sale',order.id);q.status='Converted';
+  addActivity('fa-arrow-right',`Quote ${q.id} converted to ${order.id}`);
+  pushNotif('fa-file-invoice-dollar','Quote converted',`${q.id} → order ${order.id} for ${q.customerName}`);
+  toast(`Quote converted — ${order.id} created`,'fa-arrow-right');
+}
 
 /* ================= CHART HELPERS ================= */
 Chart.defaults.font.family="'Inter Variable','Inter',system-ui,sans-serif";
@@ -529,6 +585,10 @@ function mountDashboard(){
 
 /* ----- Orders ----- */
 function viewOrders(){
+  const tabs=`<div class="tabs"><button class="tab ${ordersTab==='orders'?'on':''}" data-otab="orders"><i class="fa-solid fa-cart-shopping"></i> Orders</button><button class="tab ${ordersTab==='quotes'?'on':''}" data-otab="quotes"><i class="fa-solid fa-file-lines"></i> Quotes</button></div>`;
+  return tabs+(ordersTab==='quotes'?viewQuotes():viewOrdersList());
+}
+function viewOrdersList(){
   const c=ctl.orders;
   const counts={};['Pending','Processing','Shipped','Delivered','Cancelled'].forEach(s=>counts[s]=db.orders.filter(o=>o.status===s).length);
   const chips=['all',...Object.keys(counts)].map(s=>`<button class="chip ${c.status===s?'on':''}" data-ochip="${s}">${s==='all'?'All':s}<span>${s==='all'?db.orders.length:counts[s]}</span></button>`).join('');
@@ -538,26 +598,57 @@ function viewOrders(){
   list.sort((a,b)=>{let x=a[c.sortKey],y=b[c.sortKey];if(c.sortKey==='total'){x=+x;y=+y;}else{x=String(x).toLowerCase();y=String(y).toLowerCase();}return (x<y?-1:x>y?1:0)*c.sortDir;});
   const {slice,pages,total}=paginate(list,c);
   const ico=k=>c.sortKey===k?`<i class="fa-solid fa-caret-${c.sortDir===1?'up':'down'}"></i>`:'';
-  const rows=slice.map(o=>`<tr><td class="mono strong">${o.id}</td><td>${avatar(o.customerName,26)} ${esc(o.customerName)}</td><td class="muted">${fmtDate(o.date)}</td><td class="muted">${o.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(o.total)}</td><td>${badge(o.status)}</td><td><div class="row-actions"><button class="icon-btn sm" data-oact="view" data-id="${o.id}" title="View"><i class="fa-regular fa-eye"></i></button><button class="icon-btn sm" data-oact="edit" data-id="${o.id}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></button><button class="icon-btn sm danger" data-oact="del" data-id="${o.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button></div></td></tr>`).join('');
-  return `<div class="toolbar"><div class="chips">${chips}</div><div class="toolbar-right"><button class="btn btn-ghost btn-sm" id="btnOrdersExport"><i class="fa-solid fa-download"></i> Export CSV</button><button class="btn btn-primary btn-sm" id="btnOrdersNew"><i class="fa-solid fa-plus"></i> New Order</button></div></div>
+  const rows=slice.map(o=>`<tr><td class="mono strong">${o.id}</td><td>${avatar(o.customerName,26)} ${esc(o.customerName)}</td><td class="muted">${fmtDate(o.date)}</td><td class="muted">${o.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(o.total)}</td><td>${badge(o.status)}</td><td>${badge(payStatus(o))}${orderPaid(o)>0?`<span class="muted small" style="margin-left:6px" title="Paid ${money2(orderPaid(o))} of ${money2(o.total)}">${money2(orderPaid(o))}</span>`:''}</td><td><div class="row-actions"><button class="icon-btn sm" data-oact="view" data-id="${o.id}" title="View"><i class="fa-regular fa-eye"></i></button>${can('edit')?`<button class="icon-btn sm" data-oact="edit" data-id="${o.id}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-oact="del" data-id="${o.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
+  return `<div class="toolbar"><div class="chips">${chips}</div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnOrdersExport"><i class="fa-solid fa-download"></i> Export CSV</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnOrdersNew"><i class="fa-solid fa-plus"></i> New Order</button>`:''}</div></div>
   <div class="card"><div class="toolbar inner"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="ordersSearch" placeholder="Search by ID, customer or product…" value="${esc(c.q)}"></div><div class="spacer"></div><span class="muted small">${total} order${total===1?'':'s'}</span></div>
-  <div class="tbl-wrap"><table class="tbl"><thead><tr><th data-osort="id">Order ${ico('id')}</th><th data-osort="customerName">Customer ${ico('customerName')}</th><th data-osort="date">Date ${ico('date')}</th><th>Items</th><th data-osort="total">Total ${ico('total')}</th><th data-osort="status">Status ${ico('status')}</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No orders match your filters</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th data-osort="id">Order ${ico('id')}</th><th data-osort="customerName">Customer ${ico('customerName')}</th><th data-osort="date">Date ${ico('date')}</th><th>Items</th><th data-osort="total">Total ${ico('total')}</th><th data-osort="status">Status ${ico('status')}</th><th>Payment</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No orders match your filters</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+}
+function viewQuotes(){
+  const c=ctl.quotes;
+  let list=[...db.quotes];
+  if(c.q){const q=c.q.toLowerCase();list=list.filter(x=>x.id.toLowerCase().includes(q)||x.customerName.toLowerCase().includes(q)||x.items.some(i=>i.name.toLowerCase().includes(q)));}
+  list.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const {slice,pages,total}=paginate(list,c);
+  const rows=slice.map(q=>`<tr><td class="mono strong">${q.id}</td><td>${avatar(q.customerName,26)} ${esc(q.customerName)}</td><td class="muted">${fmtDate(q.date)}</td><td class="muted">${q.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(q.total)}</td><td>${badge(q.status)}</td><td><div class="row-actions"><button class="icon-btn sm" data-qact="view" data-id="${q.id}" title="View"><i class="fa-regular fa-eye"></i></button>${q.status!=='Converted'&&can('create')?`<button class="btn btn-primary btn-xs" data-qact="convert" data-id="${q.id}"><i class="fa-solid fa-arrow-right"></i> Convert</button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-qact="del" data-id="${q.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
+  return `<div class="toolbar"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="quoteSearch" placeholder="Search quotes by ID, customer or product…" value="${esc(c.q)}"></div><div class="spacer"></div><span class="muted small">${total} quote${total===1?'':'s'}</span>${can('create')?`<button class="btn btn-primary btn-sm" id="btnQuoteNew"><i class="fa-solid fa-plus"></i> New Quote</button>`:''}</div>
+  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Quote</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No quotes found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
 function mountOrders(){
   const c=ctl.orders;
+  $$('#view [data-otab]').forEach(b=>b.onclick=()=>{ordersTab=b.dataset.otab;rerender();});
+  if(ordersTab==='quotes'){
+    const qc=ctl.quotes;
+    bindSearch('#quoteSearch',qc);restoreFocus(qc,'#quoteSearch');bindPager(qc);
+    $$('#view [data-qact]').forEach(b=>b.onclick=()=>{const q=db.quotes.find(x=>x.id===b.dataset.id);const a=b.dataset.qact;
+      if(a==='view')openQuoteView(q.id);
+      if(a==='convert'){if(!guard('create'))return;convertQuote(q.id);save();rerender();}
+      if(a==='del')confirmModal('Delete quote',`Delete ${q.id}?`,()=>{db.quotes.splice(db.quotes.indexOf(q),1);save();toast('Quote deleted','fa-trash','warn');rerender();});});
+    const nq=$('#btnQuoteNew');if(nq)nq.onclick=()=>openOrderModal(null,'quote');
+    return;
+  }
   bindSearch('#ordersSearch',c);restoreFocus(c,'#ordersSearch');bindPager(c);
   $$('#view [data-ochip]').forEach(b=>b.onclick=()=>{c.status=b.dataset.ochip;c.page=1;rerender();});
   $$('#view [data-osort]').forEach(th=>th.onclick=()=>{const k=th.dataset.osort;if(c.sortKey===k)c.sortDir*=-1;else{c.sortKey=k;c.sortDir=(k==='date'||k==='total')?-1:1;}c.page=1;rerender();});
   $$('#view [data-oact]').forEach(b=>b.onclick=()=>{const o=db.orders.find(x=>x.id===b.dataset.id);if(!o)return;const a=b.dataset.oact;
     if(a==='view')openOrderView(o.id);
-    if(a==='edit')openOrderModal(o);
-    if(a==='del')confirmModal('Delete order',`This will permanently delete ${o.id} and restore its stock. This action cannot be undone.`,()=>{if(o.status!=='Cancelled')applyStock(o,1);db.orders.splice(db.orders.indexOf(o),1);addActivity('fa-trash','Order '+o.id+' deleted');save();toast('Order deleted','fa-trash','warn');rerender();});});
-  $('#btnOrdersNew').onclick=()=>openOrderModal(null);
-  $('#btnOrdersExport').onclick=()=>{exportCSV('orders.csv',['Order ID','Customer','Date','Status','Subtotal','Tax','Shipping','Total'],db.orders.map(o=>[o.id,o.customerName,fmtDate(o.date),o.status,o.sub.toFixed(2),o.tax.toFixed(2),o.ship.toFixed(2),o.total.toFixed(2)]));toast('Orders exported to CSV');};
+    if(a==='edit'){if(!guard('edit'))return;openOrderModal(o);}
+    if(a==='del'){if(!guard('delete'))return;confirmModal('Delete order',`This will permanently delete ${o.id} and restore its stock. This action cannot be undone.`,()=>{if(o.status!=='Cancelled')applyStock(o,1,'Order Deleted',o.id);db.orders.splice(db.orders.indexOf(o),1);addActivity('fa-trash','Order '+o.id+' deleted');save();toast('Order deleted','fa-trash','warn');rerender();});}});
+  const nn=$('#btnOrdersNew');if(nn)nn.onclick=()=>{if(guard('create'))openOrderModal(null);};
+  const ne=$('#btnOrdersExport');if(ne)ne.onclick=()=>{if(!guard('export'))return;exportCSV('orders.csv',['Order ID','Customer','Date','Status','Subtotal','Tax','Shipping','Total'],db.orders.map(o=>[o.id,o.customerName,fmtDate(o.date),o.status,o.sub.toFixed(2),o.tax.toFixed(2),o.ship.toFixed(2),o.total.toFixed(2)]));toast('Orders exported to CSV');};
 }
 
 /* ----- Inventory ----- */
 function viewInventory(){
+  const tabs=`<div class="tabs"><button class="tab ${invTab==='products'?'on':''}" data-itab="products"><i class="fa-solid fa-box"></i> Products</button><button class="tab ${invTab==='movements'?'on':''}" data-itab="movements"><i class="fa-solid fa-arrows-rotate"></i> Stock Movements</button></div>`;
+  if(invTab==='movements'){
+    const c=ctl.movements;
+    let list=[...db.movements];
+    if(c.q){const q=c.q.toLowerCase();list=list.filter(m=>m.productName.toLowerCase().includes(q)||m.reason.toLowerCase().includes(q)||m.ref.toLowerCase().includes(q));}
+    const {slice,pages,total}=paginate(list,c);
+    const rows=slice.map(m=>`<tr><td class="muted">${fmtDT(m.time)}</td><td>${avatar(m.productName,26)} ${esc(m.productName)}</td><td class="strong ${m.delta>=0?'muted':''}" style="color:${m.delta>=0?'var(--green)':'var(--red)'}">${m.delta>=0?'+':''}${m.delta}</td><td>${badge(m.reason)}</td><td class="mono muted">${esc(m.ref)||'—'}</td><td>${esc(m.by)}</td></tr>`).join('');
+    return tabs+`<div class="toolbar"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="mvSearch" placeholder="Search product, reason or reference…" value="${esc(c.q)}"></div><div class="spacer"></div><span class="muted small">${total} movement${total===1?'':'s'} recorded</span></div>
+    <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Product</th><th>Delta</th><th>Reason</th><th>Reference</th><th>By</th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No movements recorded</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+  }
   const c=ctl.inventory;
   const cats=[...new Set(db.products.map(p=>p.category))];
   let list=[...db.products];
@@ -566,21 +657,27 @@ function viewInventory(){
   const {slice,pages,total}=paginate(list,c);
   const low=db.products.filter(p=>p.stock<=p.reorder);
   const rows=slice.map(p=>{const st=p.stock===0?'Out of Stock':p.stock<=p.reorder?'Low Stock':'In Stock';
-    return `<tr><td class="mono muted">${p.sku}</td><td><div style="display:flex;align-items:center;gap:10px">${avatar(p.name,28)}<div><b style="font-size:13px">${esc(p.name)}</b><div class="muted small">${esc(p.supplier)}</div></div></div></td><td><span class="badge b-gray">${p.category}</span></td><td class="strong">${money2(p.price)}</td><td><div class="stepper"><button class="icon-btn sm" data-adj="-1" data-id="${p.id}" ${p.stock<=0?'disabled':''}><i class="fa-solid fa-minus"></i></button><span class="stock-n">${p.stock}</span><button class="icon-btn sm" data-adj="1" data-id="${p.id}"><i class="fa-solid fa-plus"></i></button></div></td><td>${badge(st)}</td><td class="muted">${money(p.stock*p.cost)}</td><td><div class="row-actions"><button class="icon-btn sm" data-pact2="edit" data-id="${p.id}"><i class="fa-regular fa-pen-to-square"></i></button><button class="icon-btn sm danger" data-pact2="del" data-id="${p.id}"><i class="fa-regular fa-trash-can"></i></button></div></td></tr>`;}).join('');
-  return `${low.length?`<div class="alert-strip"><i class="fa-solid fa-boxes-stacked"></i><span><b>${low.length}</b> item${low.length>1?'s':''} need reordering. Use Procurement → New PO to restock.</span></div>`:''}
-  <div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="invSearch" placeholder="Search name, SKU, supplier…" value="${esc(c.q)}"></div><select id="invCat" style="width:170px"><option value="all">All Categories</option>${cats.map(x=>`<option ${c.cat===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="toolbar-right"><button class="btn btn-ghost btn-sm" id="btnInvExport"><i class="fa-solid fa-download"></i> Export</button><button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> Add Product</button></div></div>
+    return `<tr><td class="mono muted">${p.sku}</td><td><div style="display:flex;align-items:center;gap:10px">${avatar(p.name,28)}<div><b style="font-size:13px">${esc(p.name)}</b><div class="muted small">${esc(p.supplier)}</div></div></div></td><td><span class="badge b-gray">${p.category}</span></td><td class="strong">${money2(p.price)}</td><td><div class="stepper">${can('edit')?`<button class="icon-btn sm" data-adj="-1" data-id="${p.id}" ${p.stock<=0?'disabled':''}><i class="fa-solid fa-minus"></i></button>`:'<span></span>'}<span class="stock-n">${p.stock}</span>${can('edit')?`<button class="icon-btn sm" data-adj="1" data-id="${p.id}"><i class="fa-solid fa-plus"></i></button>`:'<span></span>'}</div></td><td>${badge(st)}</td><td class="muted">${money(p.stock*p.cost)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-pact2="edit" data-id="${p.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-pact2="del" data-id="${p.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
+  return tabs+`${low.length?`<div class="alert-strip"><i class="fa-solid fa-boxes-stacked"></i><span><b>${low.length}</b> item${low.length>1?'s':''} need reordering. Use Procurement → New PO to restock.</span></div>`:''}
+  <div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="invSearch" placeholder="Search name, SKU, supplier…" value="${esc(c.q)}"></div><select id="invCat" style="width:170px"><option value="all">All Categories</option>${cats.map(x=>`<option ${c.cat===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnInvExport"><i class="fa-solid fa-download"></i> Export</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> Add Product</button>`:''}</div></div>
   <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Stock Value</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No products found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
 function mountInventory(){
   const c=ctl.inventory;
+  $$('#view [data-itab]').forEach(b=>b.onclick=()=>{invTab=b.dataset.itab;rerender();});
+  if(invTab==='movements'){
+    const mc=ctl.movements;
+    bindSearch('#mvSearch',mc);restoreFocus(mc,'#mvSearch');bindPager(mc);
+    return;
+  }
   bindSearch('#invSearch',c);restoreFocus(c,'#invSearch');bindPager(c);
   $('#invCat').onchange=e=>{c.cat=e.target.value;c.page=1;rerender();};
-  $$('#view [data-adj]').forEach(b=>b.onclick=()=>{const p=db.products.find(x=>x.id===b.dataset.id);p.stock=Math.max(0,p.stock+ +b.dataset.adj);save();rerender();});
+  $$('#view [data-adj]').forEach(b=>b.onclick=()=>{if(!guard('edit'))return;const p=db.products.find(x=>x.id===b.dataset.id);p.stock=Math.max(0,p.stock+ +b.dataset.adj);logMovement(p.id,+b.dataset.adj,'Manual Adjustment','');addActivity('fa-arrows-rotate',`${b.dataset.adj>0?'Stock added':'Stock removed'}: ${Math.abs(b.dataset.adj)} × ${p.name}`);save();rerender();});
   $$('#view [data-pact2]').forEach(b=>b.onclick=()=>{const p=db.products.find(x=>x.id===b.dataset.id);
-    if(b.dataset.pact2==='edit')openProductModal(p);
-    else confirmModal('Delete product',`Remove "${p.name}" from inventory? Existing orders keep their history.`,()=>{db.products.splice(db.products.indexOf(p),1);addActivity('fa-trash','Product '+p.name+' removed');save();toast('Product deleted','fa-trash','warn');rerender();});});
-  $('#btnInvNew').onclick=()=>openProductModal(null);
-  $('#btnInvExport').onclick=()=>{exportCSV('inventory.csv',['SKU','Name','Category','Supplier','Price','Cost','Stock','Reorder Level','Stock Value'],db.products.map(p=>[p.sku,p.name,p.category,p.supplier,p.price.toFixed(2),p.cost.toFixed(2),p.stock,p.reorder,(p.stock*p.cost).toFixed(2)]));toast('Inventory exported to CSV');};
+    if(b.dataset.pact2==='edit'){if(!guard('edit'))return;openProductModal(p);}
+    else{if(!guard('delete'))return;confirmModal('Delete product',`Remove "${p.name}" from inventory? Existing orders keep their history.`,()=>{db.products.splice(db.products.indexOf(p),1);addActivity('fa-trash','Product '+p.name+' removed');save();toast('Product deleted','fa-trash','warn');rerender();});}});
+  const ni=$('#btnInvNew');if(ni)ni.onclick=()=>{if(guard('create'))openProductModal(null);};
+  const nx=$('#btnInvExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('inventory.csv',['SKU','Name','Category','Supplier','Price','Cost','Stock','Reorder Level','Stock Value'],db.products.map(p=>[p.sku,p.name,p.category,p.supplier,p.price.toFixed(2),p.cost.toFixed(2),p.stock,p.reorder,(p.stock*p.cost).toFixed(2)]));toast('Inventory exported to CSV');};
 }
 
 /* ----- Customers ----- */
@@ -591,8 +688,8 @@ function viewCustomers(){
   if(c.q){const q=c.q.toLowerCase();list=list.filter(x=>x.company.toLowerCase().includes(q)||x.name.toLowerCase().includes(q)||x.email.toLowerCase().includes(q));}
   const {slice,pages,total}=paginate(list,c);
   const rows=slice.map(x=>{const ords=db.orders.filter(o=>o.customerId===x.id&&o.status!=='Cancelled');const spent=ords.reduce((s,o)=>s+o.total,0);
-    return `<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(x.company,32)}<div><b style="font-size:13px">${esc(x.company)}</b><div class="muted small">${esc(x.name)}</div></div></div></td><td class="muted">${esc(x.email)}</td><td class="muted">${FLAGS[x.country]||'🌐'} ${esc(x.country)}</td><td>${badge(x.tier)}</td><td class="strong">${ords.length}</td><td class="strong">${money(spent)}</td><td class="muted">${fmtDate(x.since)}</td><td><div class="row-actions"><button class="icon-btn sm" data-cact="edit" data-id="${x.id}"><i class="fa-regular fa-pen-to-square"></i></button><button class="icon-btn sm danger" data-cact="del" data-id="${x.id}"><i class="fa-regular fa-trash-can"></i></button></div></td></tr>`;}).join('');
-  return `<div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="cusSearch" placeholder="Search company, contact, email…" value="${esc(c.q)}"></div><select id="cusTier" style="width:140px"><option value="all">All Tiers</option>${['VIP','Standard','New'].map(t=>`<option ${c.tier===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="toolbar-right"><button class="btn btn-ghost btn-sm" id="btnCusExport"><i class="fa-solid fa-download"></i> Export</button><button class="btn btn-primary btn-sm" id="btnCusNew"><i class="fa-solid fa-user-plus"></i> Add Customer</button></div></div>
+    return `<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(x.company,32)}<div><b style="font-size:13px">${esc(x.company)}</b><div class="muted small">${esc(x.name)}</div></div></div></td><td class="muted">${esc(x.email)}</td><td class="muted">${FLAGS[x.country]||'🌐'} ${esc(x.country)}</td><td>${badge(x.tier)}</td><td class="strong">${ords.length}</td><td class="strong">${money(spent)}</td><td class="muted">${fmtDate(x.since)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-cact="edit" data-id="${x.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-cact="del" data-id="${x.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
+  return `<div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="cusSearch" placeholder="Search company, contact, email…" value="${esc(c.q)}"></div><select id="cusTier" style="width:140px"><option value="all">All Tiers</option>${['VIP','Standard','New'].map(t=>`<option ${c.tier===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnCusExport"><i class="fa-solid fa-download"></i> Export</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnCusNew"><i class="fa-solid fa-user-plus"></i> Add Customer</button>`:''}</div></div>
   <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Company</th><th>Email</th><th>Country</th><th>Tier</th><th>Orders</th><th>Lifetime Value</th><th>Customer Since</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No customers found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
 function mountCustomers(){
@@ -600,10 +697,10 @@ function mountCustomers(){
   bindSearch('#cusSearch',c);restoreFocus(c,'#cusSearch');bindPager(c);
   $('#cusTier').onchange=e=>{c.tier=e.target.value;c.page=1;rerender();};
   $$('#view [data-cact]').forEach(b=>b.onclick=()=>{const x=db.customers.find(v=>v.id===b.dataset.id);
-    if(b.dataset.cact==='edit')openCustomerModal(x);
-    else confirmModal('Delete customer',`Remove ${x.company}? Order history will be preserved.`,()=>{db.customers.splice(db.customers.indexOf(x),1);save();toast('Customer deleted','fa-trash','warn');rerender();});});
-  $('#btnCusNew').onclick=()=>openCustomerModal(null);
-  $('#btnCusExport').onclick=()=>{exportCSV('customers.csv',['Company','Contact','Email','Phone','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.email,x.phone,x.country,x.tier]));toast('Customers exported to CSV');};
+    if(b.dataset.cact==='edit'){if(!guard('edit'))return;openCustomerModal(x);}
+    else{if(!guard('delete'))return;confirmModal('Delete customer',`Remove ${x.company}? Order history will be preserved.`,()=>{db.customers.splice(db.customers.indexOf(x),1);save();toast('Customer deleted','fa-trash','warn');rerender();});}});
+  const nc=$('#btnCusNew');if(nc)nc.onclick=()=>{if(guard('create'))openCustomerModal(null);};
+  const nx=$('#btnCusExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('customers.csv',['Company','Contact','Email','Phone','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.email,x.phone,x.country,x.tier]));toast('Customers exported to CSV');};
 }
 
 /* ----- HR ----- */
@@ -616,9 +713,9 @@ function viewHR(){
   const {slice,pages,total}=paginate(list,c);
   const payroll=db.employees.filter(e=>e.status!=='On Leave').reduce((s,e)=>s+e.salary,0);
   const chips=depts.map(d=>`<button class="chip ${c.dept===d?'on':''}" data-hchip="${d}">${d}<span>${db.employees.filter(e=>e.dept===d).length}</span></button>`).join('');
-  const rows=slice.map(e=>`<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(e.name,32)}<div><b style="font-size:13px">${esc(e.name)}</b><div class="muted small">${esc(e.email)}</div></div></div></td><td>${esc(e.role)}</td><td>${badge(e.dept)}</td><td class="strong">${money(e.salary)}</td><td class="muted">${fmtDate(e.hired)}</td><td>${badge(e.status)}</td><td><div class="row-actions"><button class="icon-btn sm" data-hact="edit" data-id="${e.id}"><i class="fa-regular fa-pen-to-square"></i></button><button class="icon-btn sm danger" data-hact="del" data-id="${e.id}"><i class="fa-regular fa-trash-can"></i></button></div></td></tr>`).join('');
+  const rows=slice.map(e=>`<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(e.name,32)}<div><b style="font-size:13px">${esc(e.name)}</b><div class="muted small">${esc(e.email)}</div></div></div></td><td>${esc(e.role)}</td><td>${badge(e.dept)}</td><td class="strong">${money(e.salary)}</td><td class="muted">${fmtDate(e.hired)}</td><td>${badge(e.status)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-hact="edit" data-id="${e.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-hact="del" data-id="${e.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
   return `<div class="alert-strip" style="border-color:rgba(99,102,241,.3);background:rgba(99,102,241,.08)"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--primary)"></i><span>Monthly payroll (active staff): <b>${money(Math.round(payroll/12))}</b> · ${db.employees.length} employees across ${depts.length} departments</span></div>
-  <div class="toolbar"><div class="chips"><button class="chip ${c.dept==='all'?'on':''}" data-hchip="all">All<span>${db.employees.length}</span></button>${chips}</div><div class="toolbar-right"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="hrSearch" placeholder="Search name or role…" value="${esc(c.q)}"></div><button class="btn btn-primary btn-sm" id="btnHrNew"><i class="fa-solid fa-user-plus"></i> Add Employee</button></div></div>
+  <div class="toolbar"><div class="chips"><button class="chip ${c.dept==='all'?'on':''}" data-hchip="all">All<span>${db.employees.length}</span></button>${chips}</div><div class="toolbar-right"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="hrSearch" placeholder="Search name or role…" value="${esc(c.q)}"></div>${can('create')?`<button class="btn btn-primary btn-sm" id="btnHrNew"><i class="fa-solid fa-user-plus"></i> Add Employee</button>`:''}</div></div>
   <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Employee</th><th>Role</th><th>Department</th><th>Salary</th><th>Hired</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No employees found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
 function mountHR(){
@@ -626,9 +723,9 @@ function mountHR(){
   bindSearch('#hrSearch',c);restoreFocus(c,'#hrSearch');bindPager(c);
   $$('#view [data-hchip]').forEach(b=>b.onclick=()=>{c.dept=b.dataset.hchip;c.page=1;rerender();});
   $$('#view [data-hact]').forEach(b=>b.onclick=()=>{const e=db.employees.find(v=>v.id===b.dataset.id);
-    if(b.dataset.hact==='edit')openEmployeeModal(e);
-    else confirmModal('Delete employee',`Remove ${e.name} from the directory?`,()=>{db.employees.splice(db.employees.indexOf(e),1);save();toast('Employee removed','fa-trash','warn');rerender();});});
-  $('#btnHrNew').onclick=()=>openEmployeeModal(null);
+    if(b.dataset.hact==='edit'){if(!guard('edit'))return;openEmployeeModal(e);}
+    else{if(!guard('delete'))return;confirmModal('Delete employee',`Remove ${e.name} from the directory?`,()=>{db.employees.splice(db.employees.indexOf(e),1);save();toast('Employee removed','fa-trash','warn');rerender();});}});
+  const ne=$('#btnHrNew');if(ne)ne.onclick=()=>{if(guard('create'))openEmployeeModal(null);};
 }
 
 /* ----- Procurement ----- */
@@ -636,32 +733,33 @@ function viewProcurement(){
   const tabs=`<div class="tabs"><button class="tab ${procTab==='po'?'on':''}" data-ptab="po"><i class="fa-solid fa-file-lines"></i> Purchase Orders</button><button class="tab ${procTab==='sup'?'on':''}" data-ptab="sup"><i class="fa-solid fa-building"></i> Suppliers</button></div>`;
   if(procTab==='po'){
     const rows=db.pos.map(po=>{let acts='';
-      if(po.status==='Pending')acts+=`<button class="btn btn-ghost btn-xs" data-poact="approve" data-id="${po.id}">Approve</button>`;
-      if(po.status==='Approved')acts+=`<button class="btn btn-ghost btn-xs" data-poact="ship" data-id="${po.id}">Mark Shipped</button>`;
-      if(po.status==='Approved'||po.status==='In Transit')acts+=`<button class="btn btn-primary btn-xs" data-poact="receive" data-id="${po.id}">Receive</button>`;
+      if(po.status==='Pending'&&can('edit'))acts+=`<button class="btn btn-ghost btn-xs" data-poact="approve" data-id="${po.id}">Approve</button>`;
+      if(po.status==='Approved'&&can('edit'))acts+=`<button class="btn btn-ghost btn-xs" data-poact="ship" data-id="${po.id}">Mark Shipped</button>`;
+      if((po.status==='Approved'||po.status==='In Transit')&&can('edit'))acts+=`<button class="btn btn-primary btn-xs" data-poact="receive" data-id="${po.id}">Receive</button>`;
       if(po.status==='Received')acts+=`<span class="muted small"><i class="fa-solid fa-circle-check" style="color:var(--green)"></i> Completed</span>`;
-      acts+=`<button class="icon-btn sm danger" data-poact="del" data-id="${po.id}"><i class="fa-regular fa-trash-can"></i></button>`;
+      if(can('delete'))acts+=`<button class="icon-btn sm danger" data-poact="del" data-id="${po.id}"><i class="fa-regular fa-trash-can"></i></button>`;
       return `<tr><td class="mono strong">${po.id}</td><td>${esc(po.supplierName)}</td><td>${esc(po.productName)}</td><td class="strong">${po.qty}</td><td class="strong">${money(po.qty*po.cost)}</td><td class="muted">${fmtDate(po.eta)}</td><td>${badge(po.status)}</td><td><div class="row-actions">${acts}</div></td></tr>`;}).join('');
-    return tabs+`<div class="toolbar"><span class="muted small">${db.pos.length} purchase orders · ${db.pos.filter(p=>p.status!=='Received').length} open</span><div class="spacer"></div><button class="btn btn-primary btn-sm" id="btnPoNew"><i class="fa-solid fa-plus"></i> New Purchase Order</button></div>
+    return tabs+`<div class="toolbar"><span class="muted small">${db.pos.length} purchase orders · ${db.pos.filter(p=>p.status!=='Received').length} open</span><div class="spacer"></div>${can('create')?`<button class="btn btn-primary btn-sm" id="btnPoNew"><i class="fa-solid fa-plus"></i> New Purchase Order</button>`:''}</div>
     <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>PO</th><th>Supplier</th><th>Product</th><th>Qty</th><th>Cost</th><th>ETA</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
-  const rows=db.suppliers.map(s=>`<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(s.name,30)}<b style="font-size:13px">${esc(s.name)}</b></div></td><td>${esc(s.contact)}</td><td class="muted">${FLAGS[s.country]||'🌐'} ${esc(s.country)}</td><td class="muted">${esc(s.email)}</td><td>${stars(s.rating)}</td><td class="strong">${db.products.filter(p=>p.supplier===s.name).length}</td><td><div class="row-actions"><button class="icon-btn sm" data-sact="edit" data-id="${s.id}"><i class="fa-regular fa-pen-to-square"></i></button><button class="icon-btn sm danger" data-sact="del" data-id="${s.id}"><i class="fa-regular fa-trash-can"></i></button></div></td></tr>`).join('');
-  return tabs+`<div class="toolbar"><span class="muted small">${db.suppliers.length} active suppliers</span><div class="spacer"></div><button class="btn btn-primary btn-sm" id="btnSupNew"><i class="fa-solid fa-plus"></i> Add Supplier</button></div>
+  const rows=db.suppliers.map(s=>`<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(s.name,30)}<b style="font-size:13px">${esc(s.name)}</b></div></td><td>${esc(s.contact)}</td><td class="muted">${FLAGS[s.country]||'🌐'} ${esc(s.country)}</td><td class="muted">${esc(s.email)}</td><td>${stars(s.rating)}</td><td class="strong">${db.products.filter(p=>p.supplier===s.name).length}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-sact="edit" data-id="${s.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-sact="del" data-id="${s.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
+  return tabs+`<div class="toolbar"><span class="muted small">${db.suppliers.length} active suppliers</span><div class="spacer"></div>${can('create')?`<button class="btn btn-primary btn-sm" id="btnSupNew"><i class="fa-solid fa-plus"></i> Add Supplier</button>`:''}</div>
   <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Supplier</th><th>Contact</th><th>Country</th><th>Email</th><th>Rating</th><th>Products</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function mountProcurement(){
   $$('#view [data-ptab]').forEach(b=>b.onclick=()=>{procTab=b.dataset.ptab;rerender();});
   $$('#view [data-poact]').forEach(b=>b.onclick=()=>{const po=db.pos.find(x=>x.id===b.dataset.id);const a=b.dataset.poact;
+    if(a!=='del'&&!guard('edit'))return;
     if(a==='approve'){po.status='Approved';toast(po.id+' approved');}
     if(a==='ship'){po.status='In Transit';toast(po.id+' marked in transit','fa-truck','info');}
-    if(a==='receive'){po.status='Received';const p=db.products.find(x=>x.id===po.productId);if(p)p.stock+=po.qty;addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);pushNotif('fa-box','Stock received',`${po.qty} × ${po.productName} from ${po.supplierName}`);toast(po.id+' received — stock updated');}
-    if(a==='del'){confirmModal('Delete PO','Delete '+po.id+'? This does not affect stock.',()=>{db.pos.splice(db.pos.indexOf(po),1);save();toast('PO deleted','fa-trash','warn');rerender();});return;}
+    if(a==='receive'){po.status='Received';const p=db.products.find(x=>x.id===po.productId);if(p){p.stock+=po.qty;logMovement(p.id,po.qty,'PO Received',po.id);}addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);pushNotif('fa-box','Stock received',`${po.qty} × ${po.productName} from ${po.supplierName}`);toast(po.id+' received — stock updated');}
+    if(a==='del'){if(!guard('delete'))return;confirmModal('Delete PO','Delete '+po.id+'? This does not affect stock.',()=>{db.pos.splice(db.pos.indexOf(po),1);save();toast('PO deleted','fa-trash','warn');rerender();});return;}
     save();rerender();});
   $$('#view [data-sact]').forEach(b=>b.onclick=()=>{const s=db.suppliers.find(x=>x.id===b.dataset.id);
-    if(b.dataset.sact==='edit')openSupplierModal(s);
-    else confirmModal('Delete supplier',`Remove ${s.name}?`,()=>{db.suppliers.splice(db.suppliers.indexOf(s),1);save();toast('Supplier deleted','fa-trash','warn');rerender();});});
-  const np=$('#btnPoNew');if(np)np.onclick=()=>openPoModal();
-  const ns=$('#btnSupNew');if(ns)ns.onclick=()=>openSupplierModal(null);
+    if(b.dataset.sact==='edit'){if(!guard('edit'))return;openSupplierModal(s);}
+    else{if(!guard('delete'))return;confirmModal('Delete supplier',`Remove ${s.name}?`,()=>{db.suppliers.splice(db.suppliers.indexOf(s),1);save();toast('Supplier deleted','fa-trash','warn');rerender();});}});
+  const np=$('#btnPoNew');if(np)np.onclick=()=>{if(guard('create'))openPoModal();};
+  const ns=$('#btnSupNew');if(ns)ns.onclick=()=>{if(guard('create'))openSupplierModal(null);};
 }
 
 /* ----- Finance ----- */
@@ -669,7 +767,7 @@ function viewFinance(){
   const {rev}=monthAgg();const exp=expSeries(rev);
   const outstanding=db.invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
   const profit=rev[11]-exp[11];const margin=rev[11]?Math.round(profit/rev[11]*100):0;
-  const rows=db.invoices.map(i=>`<tr><td class="mono strong">${i.id}</td><td>${avatar(i.customerName,26)} ${esc(i.customerName)}</td><td class="muted">${fmtDate(i.issued)}</td><td class="muted">${fmtDate(i.due)}</td><td class="strong">${money(i.amount)}</td><td>${badge(i.status)}</td><td><div class="row-actions">${i.status!=='Paid'?`<button class="btn btn-ghost btn-xs" data-iact="pay" data-id="${i.id}"><i class="fa-solid fa-check"></i> Mark Paid</button>`:'<span class="muted small">Settled '+(i.paidOn?fmtDate(i.paidOn):'')+'</span>'}<button class="icon-btn sm danger" data-iact="del" data-id="${i.id}"><i class="fa-regular fa-trash-can"></i></button></div></td></tr>`).join('');
+  const rows=db.invoices.map(i=>`<tr><td class="mono strong">${i.id}</td><td>${avatar(i.customerName,26)} ${esc(i.customerName)}</td><td class="mono muted">${i.orderId?esc(i.orderId):'—'}</td><td class="muted">${fmtDate(i.issued)}</td><td class="muted">${fmtDate(i.due)}</td><td class="strong">${money(i.amount)}</td><td>${badge(i.status)}</td><td><div class="row-actions">${i.status!=='Paid'&&can('edit')?`<button class="btn btn-ghost btn-xs" data-iact="pay" data-id="${i.id}"><i class="fa-solid fa-check"></i> Mark Paid</button>`:(i.status==='Paid'?`<span class="muted small">Settled ${i.paidOn?fmtDate(i.paidOn):''}</span>`:'')}${can('delete')?`<button class="icon-btn sm danger" data-iact="del" data-id="${i.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
   return `<div class="grid g-4 mb">
     <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c4"><i class="fa-solid fa-arrow-trend-up"></i></div>${spark(rev.slice(-8),'#10b981')}</div><div class="kpi-val" data-num="${rev[11]}" data-fmt="money">${money(rev[11])}</div><div class="kpi-label">Revenue (this month)</div><div class="kpi-sub">${deltaHtml(pct(rev[11],rev[10]))}</div></div>
     <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c3"><i class="fa-solid fa-arrow-trend-down"></i></div>${spark(exp.slice(-8),'#f59e0b')}</div><div class="kpi-val" data-num="${exp[11]}" data-fmt="money">${money(exp[11])}</div><div class="kpi-label">Expenses (this month)</div><div class="kpi-sub">${deltaHtml(pct(exp[11],exp[10]))}</div></div>
@@ -680,14 +778,14 @@ function viewFinance(){
     <div class="card"><div class="card-h"><div><h3>Revenue vs Expenses</h3><p>Trailing 12 months</p></div></div><div class="card-b"><div class="chart-box"><canvas id="chFin"></canvas></div></div></div>
     <div class="card"><div class="card-h"><div><h3>Expense Breakdown</h3><p>YTD allocation</p></div></div><div class="card-b"><div class="chart-box"><canvas id="chExp"></canvas></div></div></div>
   </div>
-  <div class="card"><div class="card-h"><div><h3>Invoices &amp; Receivables</h3><p>${db.invoices.length} invoices</p></div><button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> New Invoice</button></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Customer</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  <div class="card"><div class="card-h"><div><h3>Invoices &amp; Receivables</h3><p>${db.invoices.length} invoices</p></div>${can('create')?`<button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> New Invoice</button>`:''}</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Customer</th><th>Source</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 function mountFinance(){
   animateKpis();
   $$('#view [data-iact]').forEach(b=>b.onclick=()=>{const i=db.invoices.find(x=>x.id===b.dataset.id);
-    if(b.dataset.iact==='pay'){i.status='Paid';i.paidOn=new Date().toISOString();addActivity('fa-file-invoice-dollar',`Invoice ${i.id} paid by ${i.customerName}`);pushNotif('fa-file-invoice-dollar','Payment received',`${i.id} settled — ${money(i.amount)}`);save();toast(i.id+' marked as paid');rerender();}
-    else confirmModal('Delete invoice','Delete '+i.id+'?',()=>{db.invoices.splice(db.invoices.indexOf(i),1);save();toast('Invoice deleted','fa-trash','warn');rerender();});});
-  $('#btnInvNew').onclick=()=>openInvoiceModal();
+    if(b.dataset.iact==='pay'){if(!guard('edit'))return;i.status='Paid';i.paidOn=new Date().toISOString();const o=db.orders.find(x=>x.id===i.orderId);if(o){o.payments=o.payments||[];o.payments.push({id:'p'+Date.now(),amount:i.amount,method:'Bank Transfer',date:new Date().toISOString()});}addActivity('fa-file-invoice-dollar',`Invoice ${i.id} paid by ${i.customerName}`);pushNotif('fa-file-invoice-dollar','Payment received',`${i.id} settled — ${money(i.amount)}`);save();toast(i.id+' marked as paid');rerender();}
+    else{if(!guard('delete'))return;confirmModal('Delete invoice','Delete '+i.id+'?',()=>{db.invoices.splice(db.invoices.indexOf(i),1);save();toast('Invoice deleted','fa-trash','warn');rerender();});}});
+  const ni=$('#btnInvNew');if(ni)ni.onclick=()=>{if(guard('create'))openInvoiceModal();};
   const {rev}=monthAgg();const exp=expSeries(rev);
   charts.push(new Chart($('#chFin'),{type:'bar',data:{labels:last12Labels(),datasets:[{label:'Revenue',data:rev.map(v=>Math.round(v)),backgroundColor:'rgba(99,102,241,.75)',hoverBackgroundColor:'#6366f1',borderRadius:6,maxBarThickness:18},{label:'Expenses',data:exp,backgroundColor:'rgba(148,163,184,.5)',hoverBackgroundColor:'#94a3b8',borderRadius:6,maxBarThickness:18}]},options:{maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,boxWidth:7}},tooltip:tipMoney},scales:{y:{grid:{color:gridC()},ticks:{callback:v=>'$'+(v>=1000?(v/1000)+'k':v)}},x:{grid:{display:false}}}}}));
   const totExp=exp.reduce((a,b)=>a+b,0);
@@ -714,7 +812,7 @@ function mountReports(){
   charts.push(new Chart($('#chTarget'),{type:'line',data:{labels:last12Labels(),datasets:[{label:'Actual',data:rev.map(v=>Math.round(v)),borderColor:'#6366f1',backgroundColor:c=>grad(c,'99,102,241'),fill:true,tension:.4,borderWidth:2.5,pointRadius:3},{label:'Target',data:rev.map(()=>9500),borderColor:'#f59e0b',borderDash:[6,6],borderWidth:2,pointRadius:0,fill:false}]},options:{maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,boxWidth:7}},tooltip:tipMoney},scales:{y:{grid:{color:gridC()},ticks:{callback:v=>'$'+(v>=1000?(v/1000)+'k':v)}},x:{grid:{display:false}}}}}));
   const tc=Object.entries(db.orders.filter(o=>o.status!=='Cancelled').reduce((m,o)=>{m[o.customerName]=(m[o.customerName]||0)+o.total;return m;},{})).sort((a,b)=>b[1]-a[1]).slice(0,7);
   charts.push(new Chart($('#chCust'),{type:'bar',data:{labels:tc.map(t=>t[0]),datasets:[{label:'Revenue',data:tc.map(t=>Math.round(t[1])),backgroundColor:'rgba(139,92,246,.7)',hoverBackgroundColor:'#8b5cf6',borderRadius:6}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tipMoney},scales:{x:{grid:{color:gridC()},ticks:{callback:v=>'$'+(v>=1000?(v/1000)+'k':v)}},y:{grid:{display:false}}}}}));
-  $$('#view [data-exp]').forEach(b=>b.onclick=()=>{const k=b.dataset.exp;
+  $$('#view [data-exp]').forEach(b=>b.onclick=()=>{if(!guard('export'))return;const k=b.dataset.exp;
     if(k==='orders')exportCSV('orders-report.csv',['Order ID','Customer','Date','Status','Total'],db.orders.map(o=>[o.id,o.customerName,fmtDate(o.date),o.status,o.total.toFixed(2)]));
     if(k==='products')exportCSV('inventory-report.csv',['SKU','Name','Category','Stock','Price'],db.products.map(p=>[p.sku,p.name,p.category,p.stock,p.price.toFixed(2)]));
     if(k==='customers')exportCSV('customers-report.csv',['Company','Contact','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.country,x.tier]));
@@ -752,29 +850,30 @@ function viewSettings(){
   </div>`;
 }
 function mountSettings(){
-  $('#profForm').onsubmit=e=>{e.preventDefault();db.profile.name=$('#pfName').value.trim();db.profile.email=$('#pfEmail').value.trim();db.profile.role=$('#pfRole').value;save();renderUserChip();toast('Profile updated');};
+  $('#profForm').onsubmit=e=>{e.preventDefault();if(!guard('edit'))return;db.profile.name=$('#pfName').value.trim();db.profile.email=$('#pfEmail').value.trim();db.profile.role=$('#pfRole').value;save();renderUserChip();toast('Profile updated');};
   $$('#view [data-themechoice]').forEach(b=>b.onclick=()=>applyTheme(b.dataset.themechoice));
-  $$('#view [data-pref]').forEach(s=>s.onchange=()=>{db.prefs[s.dataset.pref]=s.checked;save();toast('Preference saved','fa-sliders','info');});
-  $('#btnBackup').onclick=()=>{download('nexus-erp-backup.json','application/json',JSON.stringify(db,null,2));toast('Backup downloaded');};
-  $('#btnReset').onclick=()=>confirmModal('Reset demo data','All changes will be discarded and fresh demo data will be generated. This cannot be undone.',()=>{localStorage.removeItem(LS_KEY);db=seed();save();applyTheme(db.theme,false);renderUserChip();updateNotifDot();navigate('dashboard');toast('Demo data has been reset','fa-rotate-left','info');},'Reset');
+  $$('#view [data-pref]').forEach(s=>s.onchange=()=>{if(!guard('edit')){s.checked=!s.checked;return;}db.prefs[s.dataset.pref]=s.checked;save();toast('Preference saved','fa-sliders','info');});
+  $('#btnBackup').onclick=()=>{if(!guard('export'))return;download('nexus-erp-backup.json','application/json',JSON.stringify(db,null,2));toast('Backup downloaded');};
+  $('#btnReset').onclick=()=>{if(!guard('delete'))return;confirmModal('Reset demo data','All changes will be discarded and fresh demo data will be generated. This cannot be undone.',()=>{localStorage.removeItem(LS_KEY);db=seed();save();applyTheme(db.theme,false);renderUserChip();updateNotifDot();navigate('dashboard');toast('Demo data has been reset','fa-rotate-left','info');},'Reset');};
 }
 
 /* ================= MODAL FORMS ================= */
-let draft={items:[],editingId:null};
-function openOrderModal(order){
+let draft={items:[],editingId:null,mode:'order'};
+function openOrderModal(order,mode='order'){
   const editing=!!order;
-  draft={items:editing?order.items.map(i=>({...i})):[{productId:'',qty:1}],editingId:editing?order.id:null};
+  draft={mode,items:editing?order.items.map(i=>({...i})):[{productId:'',qty:1}],editingId:editing?order.id:null};
+  const isQ=mode==='quote';
   const custOpts=db.customers.map(c=>`<option value="${c.id}" ${editing&&order.customerId===c.id?'selected':''}>${esc(c.company)}</option>`).join('');
-  const stOpts=['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${editing&&order.status===s?'selected':''}>${s}</option>`).join('');
-  openModal(`<div class="modal-head"><div><h3>${editing?'Edit '+order.id:'New Sales Order'}</h3><p>${editing?'Modify items, status or customer':'Create a new order — stock is allocated automatically'}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
+  const stOpts=isQ?['Draft','Sent','Approved'].map(s=>`<option ${editing&&order.status===s?'selected':''}>${s}</option>`).join(''):['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${editing&&order.status===s?'selected':''}>${s}</option>`).join('');
+  openModal(`<div class="modal-head"><div><h3>${editing?(isQ?'Edit ':'Edit ')+order.id:(isQ?'New Sales Quote':'New Sales Order')}</h3><p>${isQ?'Prepare a quote — no stock is allocated until converted':'Create a new order — stock is allocated automatically'}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
   <form id="orderForm" class="modal-body" style="overflow-y:auto">
-    <div class="frow2"><label>Customer<select id="of-cust" required>${custOpts}</select></label><label>Order Date<input type="date" id="of-date" required value="${(editing?order.date:new Date().toISOString()).slice(0,10)}"></label></div>
+    <div class="frow2"><label>Customer<select id="of-cust" required>${custOpts}</select></label><label>${isQ?'Quote Date':'Order Date'}<input type="date" id="of-date" required value="${(editing?order.date:new Date().toISOString()).slice(0,10)}"></label></div>
     <label>Status<select id="of-status">${stOpts}</select></label>
     <div class="items-label"><span>Line Items</span><button type="button" class="btn btn-ghost btn-xs" id="of-additem"><i class="fa-solid fa-plus"></i> Add Item</button></div>
     <div id="of-items"></div>
     <div class="of-totals" id="of-totals"></div>
   </form>
-  <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="of-save"><i class="fa-solid fa-check"></i> ${editing?'Save Changes':'Create Order'}</button></div>`,660);
+  <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="of-save"><i class="fa-solid fa-check"></i> ${editing?'Save Changes':(isQ?'Create Quote':'Create Order')}</button></div>`,660);
   renderDraft();
   $('#orderForm').onsubmit=e=>{e.preventDefault();saveOrder();};
   $('#of-additem').onclick=()=>{draft.items.push({productId:'',qty:1});renderDraft();};
@@ -783,7 +882,7 @@ function openOrderModal(order){
 function renderDraft(){
   const wrap=$('#of-items');
   wrap.innerHTML=draft.items.map((it,idx)=>{
-    const opts='<option value="">Select product…</option>'+db.products.filter(p=>p.stock>0||it.productId===p.id).map(p=>`<option value="${p.id}" ${it.productId===p.id?'selected':''}>${esc(p.name)} — ${money2(p.price)}</option>`).join('');
+    const opts='<option value="">Select product…</option>'+db.products.map(p=>`<option value="${p.id}" ${it.productId===p.id?'selected':''}>${esc(p.name)} — ${money2(p.price)}</option>`).join('');
     const p=db.products.find(x=>x.id===it.productId);
     return `<div class="draft-row"><select data-di="${idx}" data-f="productId">${opts}</select><input type="number" min="1" max="999" value="${it.qty}" data-di="${idx}" data-f="qty"><span class="draft-line">${p?money2(p.price*it.qty):'—'}</span><button type="button" class="icon-btn sm danger" data-del="${idx}"><i class="fa-regular fa-trash-can"></i></button></div>`;
   }).join('');
@@ -799,17 +898,32 @@ function saveOrder(){
   if(!items.length){toast('Add at least one line item','fa-triangle-exclamation','warn');return;}
   const sub=items.reduce((s,i)=>s+i.qty*i.price,0),tax=sub*.08,ship=sub>1000?0:25,total=sub+tax+ship;
   const cust=db.customers.find(c=>c.id===customerId);
+  if(draft.mode==='quote'){
+    const payload={customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString()};
+    if(draft.editingId){
+      const q=db.quotes.find(x=>x.id===draft.editingId);
+      if(q.status==='Converted'){toast('Converted quotes cannot be edited','fa-lock','warn');return;}
+      Object.assign(q,payload);
+      toast('Quote '+q.id+' updated');
+    }else{
+      const id='QT-'+(db.seq.quote++);
+      db.quotes.unshift({id,...payload});
+      addActivity('fa-file-lines',`Quote ${id} created for ${cust.company} — ${money(total)}`);
+      toast('Quote '+id+' created');
+    }
+    save();closeModal();ordersTab='quotes';navigate('orders');return;
+  }
   if(draft.editingId){
     const old=db.orders.find(o=>o.id===draft.editingId);
-    if(old.status!=='Cancelled')applyStock(old,1);
+    if(old.status!=='Cancelled')applyStock(old,1,'Order Edit',old.id);
     Object.assign(old,{customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString()});
-    if(status!=='Cancelled')applyStock(old,-1);
+    if(status!=='Cancelled')applyStock(old,-1,'Sale',old.id);
     toast('Order '+old.id+' updated');
   }else{
     const id='ORD-'+(db.seq.order++);
-    const o={id,customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString()};
+    const o={id,customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString(),payments:[]};
     db.orders.unshift(o);
-    if(status!=='Cancelled')applyStock(o,-1);
+    if(status!=='Cancelled')applyStock(o,-1,'Sale',o.id);
     addActivity('fa-cart-shopping',`New order ${id} from ${cust.company} — ${money(total)}`);
     pushNotif('fa-cart-shopping','New order received',`${id} · ${cust.company} · ${money(total)}`);
     toast('Order '+id+' created');
@@ -818,14 +932,64 @@ function saveOrder(){
 }
 function openOrderView(id){
   const o=db.orders.find(x=>x.id===id);if(!o)return;
-  openModal(`<div class="modal-head"><div><h3>${o.id}</h3><p>Placed ${fmtDT(o.date)}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
+  const paid=orderPaid(o),bal=Math.max(0,o.total-paid);
+  const inv=db.invoices.find(i=>i.orderId===o.id);
+  const payRows=(o.payments||[]).slice().reverse().map(p=>`<div class="act-item"><span class="act-ico" style="background:rgba(16,185,129,.12);color:var(--green)"><i class="fa-solid fa-money-bill"></i></span><div><p><b>${money2(p.amount)}</b> · ${esc(p.method)}</p><time>${fmtDate(p.date)}</time></div></div>`).join('')||'<div class="empty" style="padding:14px"><i class="fa-regular fa-hourglass-half"></i>No payments recorded yet</div>';
+  openModal(`<div class="modal-head"><div><h3>${o.id}</h3><p>Placed ${fmtDT(o.date)}${inv?' · <a href="#" style="color:var(--primary)" id="goInv">'+inv.id+'</a>':''}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
   <div class="modal-body">
-    <div class="ov-grid"><div><span>Customer</span><b>${esc(o.customerName)}</b></div><div><span>Status</span>${badge(o.status)}</div><div><span>Items</span><b>${o.items.reduce((s,i)=>s+i.qty,0)}</b></div><div><span>Payment</span><b>${o.status==='Delivered'?'Paid':'Unpaid'}</b></div></div>
-    <table class="tbl mini"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th class="ta-r">Amount</th></tr></thead><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>${money2(i.price)}</td><td class="ta-r">${money2(i.qty*i.price)}</td></tr>`).join('')}</tbody></table>
-    <div class="of-totals"><div>Subtotal<span>${money2(o.sub)}</span></div><div>Tax<span>${money2(o.tax)}</span></div><div>Shipping<span>${o.ship?money2(o.ship):'Free'}</span></div><div class="tt">Total<span>${money2(o.total)}</span></div></div>
+    <div class="ov-grid"><div><span>Customer</span><b>${esc(o.customerName)}</b></div><div><span>Status</span>${badge(o.status)}</div><div><span>Items</span><b>${o.items.reduce((s,i)=>s+i.qty,0)}</b></div><div><span>Payment</span>${badge(payStatus(o))}</div></div>
+    <div class="of-totals"><div>Total<span>${money2(o.total)}</span></div><div>Paid<span style="color:var(--green)">${money2(paid)}</span></div><div>Balance${bal>0?' <span class="badge b-red" style="margin-left:4px">Due</span>':''}<span>${money2(bal)}</span></div></div>
+    <table class="tbl mini" style="margin-top:8px"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th class="ta-r">Amount</th></tr></thead><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>${money2(i.price)}</td><td class="ta-r">${money2(i.qty*i.price)}</td></tr>`).join('')}</tbody></table>
+    <div class="items-label" style="margin-top:14px"><span>Payments</span></div>
+    <div style="border:1px solid var(--border);border-radius:12px;padding:2px 14px">${payRows}</div>
   </div>
-  <div class="modal-foot"><label class="inline-label">Status<select id="ov-status">${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></label><div class="spacer"></div><button class="btn btn-ghost modal-close">Close</button><button class="btn btn-primary" id="ov-save">Update Status</button></div>`,620);
-  $('#ov-save').onclick=()=>{changeStatus(o,$('#ov-status').value);save();toast(o.id+' status updated');closeModal();rerender();};
+  <div class="modal-foot"><label class="inline-label">Status<select id="ov-status">${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></label>${can('create')&&!inv?`<button class="btn btn-ghost btn-sm" id="ov-inv"><i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice</button>`:''}${bal>0.005&&can('edit')?`<button class="btn btn-ghost btn-sm" id="ov-pay"><i class="fa-solid fa-money-bill"></i> Record Payment</button>`:''}<div class="spacer"></div><button class="btn btn-ghost modal-close">Close</button><button class="btn btn-primary" id="ov-save">Update Status</button></div>`,680);
+  const gi=$('#goInv');if(gi)gi.onclick=e=>{e.preventDefault();closeModal();navigate('finance');};
+  const ip=$('#ov-inv');if(ip)ip.onclick=()=>{const nv=createInvoiceForOrder(o);save();toast('Invoice '+nv.id+' created');closeModal();rerender();};
+  const pp=$('#ov-pay');if(pp)pp.onclick=()=>openPaymentModal(o);
+  $('#ov-save').onclick=()=>{
+    const ns=$('#ov-status').value,had=db.invoices.some(i=>i.orderId===o.id);
+    changeStatus(o,ns);
+    if(ns==='Delivered'){const nv=createInvoiceForOrder(o);if(nv&&!had){pushNotif('fa-file-invoice-dollar','Invoice generated',`${nv.id} for ${o.id} · ${money(nv.amount)}`);addActivity('fa-file-invoice-dollar',`Invoice ${nv.id} generated from ${o.id}`);}}
+    save();toast(o.id+' status updated');closeModal();rerender();
+  };
+}
+function openPaymentModal(o){
+  const bal=Math.max(0,o.total-orderPaid(o));
+  openModal(`<div class="modal-head"><div><h3>Record Payment — ${o.id}</h3><p>Outstanding balance ${money2(bal)}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
+  <form id="payForm" class="modal-body">
+    <label>Amount ($)<input type="number" min="0.01" step="0.01" id="pay-amt" value="${bal.toFixed(2)}"></label>
+    <label>Method<select id="pay-method"><option>Card</option><option>Bank Transfer</option><option>Cash</option><option>Cheque</option></select></label>
+    <label>Payment Date<input type="date" id="pay-date" value="${new Date().toISOString().slice(0,10)}"></label>
+  </form>
+  <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="pay-save"><i class="fa-solid fa-check"></i> Record Payment</button></div>`,480);
+  $('#payForm').onsubmit=e=>{e.preventDefault();$('#pay-save').click();};
+  $('#pay-save').onclick=()=>{
+    const amt=+$('#pay-amt').value||0;
+    if(amt<=0){toast('Enter a valid amount','fa-triangle-exclamation','warn');return;}
+    o.payments=o.payments||[];
+    o.payments.push({id:'p'+Date.now(),amount:+Math.min(amt,bal).toFixed(2),method:$('#pay-method').value,date:new Date($('#pay-date').value+'T12:00:00').toISOString()});
+    addActivity('fa-money-bill',`Payment of ${money2(amt)} received for ${o.id}`);
+    pushNotif('fa-money-bill','Payment received',`${money2(amt)} for ${o.id} · ${o.customerName}`);
+    const inv=db.invoices.find(i=>i.orderId===o.id);
+    if(inv&&orderPaid(o)>=o.total-0.005){inv.status='Paid';inv.paidOn=new Date().toISOString();}
+    save();toast('Payment recorded','fa-circle-check');closeModal();openOrderView(o.id);
+  };
+}
+function openQuoteView(id){
+  const q=db.quotes.find(x=>x.id===id);if(!q)return;
+  const converted=q.status==='Converted';
+  openModal(`<div class="modal-head"><div><h3>${q.id}</h3><p>Prepared ${fmtDT(q.date)}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
+  <div class="modal-body">
+    <div class="ov-grid"><div><span>Customer</span><b>${esc(q.customerName)}</b></div><div><span>Status</span>${badge(q.status)}</div><div><span>Items</span><b>${q.items.reduce((s,i)=>s+i.qty,0)}</b></div><div><span>Total</span><b>${money2(q.total)}</b></div></div>
+    <table class="tbl mini"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th class="ta-r">Amount</th></tr></thead><tbody>${q.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>${money2(i.price)}</td><td class="ta-r">${money2(i.qty*i.price)}</td></tr>`).join('')}</tbody></table>
+    <div class="of-totals"><div>Subtotal<span>${money2(q.sub)}</span></div><div>Tax<span>${money2(q.tax)}</span></div><div>Shipping<span>${q.ship?money2(q.ship):'Free'}</span></div><div class="tt">Total<span>${money2(q.total)}</span></div></div>
+  </div>
+  <div class="modal-foot">${!converted?`<label class="inline-label">Status<select id="qv-status">${['Draft','Sent','Approved'].map(s=>`<option ${s===q.status?'selected':''}>${s}</option>`).join('')}</select></label>`:''}<div class="spacer"></div>${!converted&&can('create')?`<button class="btn btn-primary" id="qv-conv"><i class="fa-solid fa-arrow-right"></i> Convert to Order</button>`:''}<button class="btn btn-ghost modal-close">Close</button></div>`,620);
+  const vs=$('#qv-status');
+  if(vs){vs.addEventListener('change',()=>{q.status=vs.value;save();toast('Quote status updated');});}
+  const cv=$('#qv-conv');
+  if(cv)cv.onclick=()=>{convertQuote(q.id);save();closeModal();rerender();};
 }
 function openProductModal(p){
   const editing=!!p;
@@ -843,7 +1007,7 @@ function openProductModal(p){
   $('#pp-save').onclick=()=>{
     const data={name:$('#pp-name').value.trim(),sku:$('#pp-sku').value.trim()==='AUTO'?'SKU-'+ri(1000,9999):$('#pp-sku').value.trim(),category:$('#pp-cat').value,supplier:$('#pp-sup').value,price:+$('#pp-price').value,cost:+$('#pp-cost').value,stock:Math.max(0,+$('#pp-stock').value),reorder:Math.max(0,+$('#pp-re').value)};
     if(!data.name||isNaN(data.price))return;
-    if(editing)Object.assign(p,data);else{db.products.push({id:'PRD-'+(db.seq.product++),...data});addActivity('fa-box','New product added: '+data.name);}
+    if(editing){const diff=data.stock-p.stock;Object.assign(p,data);if(diff)logMovement(p.id,diff,'Adjustment','Product Edit');}else{db.products.push({id:'PRD-'+(db.seq.product++),...data});addActivity('fa-box','New product added: '+data.name);}
     save();closeModal();toast(editing?'Product updated':'Product added');rerender();
   };
 }

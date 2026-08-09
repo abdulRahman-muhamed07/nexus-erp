@@ -6,7 +6,11 @@ A complete, client-side Enterprise Resource Planning (ERP) application built wit
 
 - **Dashboard** — Revenue KPIs, sales-by-category charts, top products, and live activity feed
 - **Sales Orders** — Create, edit, view, filter, sort, and delete orders with automatic stock allocation
-- **Inventory** — Stock levels, low-stock alerts, valuation, and quick adjustments
+- **Quotes** — Draft / Sent / Approved pipeline with one-click conversion into a live order
+- **Role-Based Permissions** — Viewer / Analyst / Manager / Administrator roles gate create, edit, delete, and export actions across every module
+- **Inventory** — Stock levels, low-stock alerts, valuation, quick adjustments, and a full stock-movement history (sales, cancellations, PO receipts, manual adjustments)
+- **Payments** — Order-level payment tracking with Paid / Partially Paid / Unpaid status
+- **Invoices** — Auto-generated from Delivered orders, linked back to the order, with Mark Paid flow that syncs to the order
 - **Procurement** — Purchase orders (approve → ship → receive) and supplier management
 - **Customers** — CRM with tiers, lifetime value, and flags by country
 - **Human Resources** — Employee directory, departments, and payroll overview
