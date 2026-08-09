@@ -263,6 +263,10 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
 .login-card label{text-align:left}
 .login-card .btn{width:100%;justify-content:center;margin-top:6px}
 .login-card small{display:block;margin-top:14px}
+.login-error{display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.35);color:#f43f5e;font-size:12.5px;border-radius:10px;padding:9px 12px;margin-top:14px;text-align:left}
+.login-demo{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border);text-align:left}
+.login-demo b{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.login-demo code{display:flex;justify-content:space-between;font-family:inherit;font-size:12px;color:var(--text);padding:5px 0}
 
 @media(max-width:1200px){.g-4{grid-template-columns:repeat(2,1fr)}.g-21{grid-template-columns:1fr}}
 @media(max-width:1080px){
@@ -292,16 +296,22 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
     <img src="https://image.qwenlm.ai/public_source/d43ae1c8-b806-4c44-b2c8-5cc2644be726/134aee309-c301-4af0-8d1b-70575ac3c49e.png" alt="Nexus ERP">
     <h2>Welcome back</h2>
     <p>Sign in to your Nexus ERP workspace</p>
-    <label>Email<input type="email" id="liEmail" required></label>
-    <label>Password<input type="password" id="liPass" required value="demo1234"></label>
+    <label>Email<input type="email" id="liEmail" placeholder="admin@nexuserp.io" required></label>
+    <label>Password<input type="password" id="liPass" placeholder="••••••••" required></label>
     <label>Sign in as<select id="liRole"><option>Administrator</option><option>Manager</option><option>Analyst</option><option>Viewer</option></select></label>
+    <div class="login-error" id="liError">Invalid email or password. Use one of the demo accounts below.</div>
     <button class="btn btn-primary btn-lg" type="submit">Sign In <i class="fa-solid fa-arrow-right"></i></button>
-    <small class="muted" style="margin-top:14px">Demo environment — any credentials work.</small>
     <div class="chips" style="justify-content:center;margin-top:12px">
       <button type="button" class="chip" data-quick="Administrator">Admin</button>
       <button type="button" class="chip" data-quick="Manager">Manager</button>
       <button type="button" class="chip" data-quick="Analyst">Analyst</button>
       <button type="button" class="chip" data-quick="Viewer">Viewer</button>
+    </div>
+    <div class="login-demo"><b>Demo accounts</b>
+      <code><span>admin@nexuserp.io</span><span>admin123</span></code>
+      <code><span>manager@nexuserp.io</span><span>manager123</span></code>
+      <code><span>analyst@nexuserp.io</span><span>analyst123</span></code>
+      <code><span>viewer@nexuserp.io</span><span>viewer123</span></code>
     </div>
   </form>
 </div>
@@ -511,6 +521,36 @@ function changeStatus(o,ns){if(o.status===ns)return;if(ns==='Cancelled'&&o.statu
 const ROLE_RANK={Viewer:1,Analyst:2,Manager:3,Administrator:4};
 function can(p){return (ROLE_RANK[db.profile.role]||1)>=(p==='view'?1:p==='export'?2:p==='create'?3:p==='edit'?3:4);}
 function guard(p,msg){if(!can(p)){toast(msg||'Insufficient permissions for this action','fa-lock','warn');return false;}return true;}
+
+/* ================= AUTH ================= */
+const DEMO_ACCOUNTS={
+  'admin@nexuserp.io':   {pass:'admin123',   role:'Administrator', name:'Alex Morgan'},
+  'manager@nexuserp.io': {pass:'manager123', role:'Manager',       name:'Priya Sharma'},
+  'analyst@nexuserp.io': {pass:'analyst123', role:'Analyst',       name:'Tom Becker'},
+  'viewer@nexuserp.io':  {pass:'viewer123',  role:'Viewer',        name:'Lucia Fernandez'}
+};
+function fillRoleCreds(role){
+  const acc=Object.entries(DEMO_ACCOUNTS).find(([,v])=>v.role===role);
+  if(!acc)return;
+  $('#liEmail').value=acc[0];$('#liPass').value=acc[1].pass;$('#liRole').value=role;
+  const err=$('#liError');if(err)err.style.display='none';
+}
+function showLogin(){db.session=null;save();$('#liPass').value='';const err=$('#liError');if(err)err.style.display='none';$('#login').classList.remove('hidden');}
+function submitLogin(e){
+  e.preventDefault();
+  const email=$('#liEmail').value.trim().toLowerCase();
+  const pass=$('#liPass').value;
+  const acc=DEMO_ACCOUNTS[email];
+  const err=$('#liError');
+  if(!acc||acc.pass!==pass){err.style.display='block';$('#liPass').value='';$('#liPass').focus();return;}
+  err.style.display='none';
+  db.profile.role=acc.role;db.profile.name=acc.name;
+  db.session={email,role:acc.role,time:new Date().toISOString()};
+  save();renderUserChip();updateNotifDot();
+  $('#login').classList.add('hidden');
+  toast(`Welcome, ${acc.name.split(' ')[0]} — signed in as ${acc.role}`,'fa-hand');
+  if(currentView&&VIEWS[currentView])navigate(currentView);
+}
 
 /* ================= STOCK MOVEMENTS / PAYMENTS / INVOICES ================= */
 function logMovement(productId,delta,reason,ref){
@@ -1156,8 +1196,10 @@ function bindTopbar(){
   $('#btnUser').onclick=e=>{e.stopPropagation();$('#notifPop').classList.remove('show');$('#userPop').classList.toggle('show');};
   $('#upSettings').onclick=()=>{$('#userPop').classList.remove('show');navigate('settings');};
   $('#upBackup').onclick=()=>{$('#userPop').classList.remove('show');download('nexus-erp-backup.json','application/json',JSON.stringify(db,null,2));toast('Backup downloaded');};
-  $('#btnSignout').onclick=()=>{$('#userPop').classList.remove('show');$('#login').classList.remove('hidden');$('#liEmail').value=db.profile.email;};
-  $('#loginForm').onsubmit=e=>{e.preventDefault();$('#login').classList.add('hidden');toast('Welcome back, '+db.profile.name.split(' ')[0]+'!','fa-hand');};
+  $('#btnSignout').onclick=()=>{$('#userPop').classList.remove('show');showLogin();};
+  $('#loginForm').onsubmit=submitLogin;
+  $('#liRole').onchange=e=>fillRoleCreds(e.target.value);
+  $$('#login [data-quick]').forEach(b=>b.onclick=()=>fillRoleCreds(b.dataset.quick));
   document.addEventListener('click',e=>{
     if(!e.target.closest('#notifPop')&&!e.target.closest('#btnNotif'))$('#notifPop').classList.remove('show');
     if(!e.target.closest('#userPop')&&!e.target.closest('#btnUser'))$('#userPop').classList.remove('show');
@@ -1195,6 +1237,7 @@ updateNotifDot();
 bindTopbar();
 applyTheme(db.theme||'light',false);
 navigate('dashboard');
+if(!(db.session&&db.session.email)){fillRoleCreds('Administrator');$('#login').classList.remove('hidden');}else{$('#liEmail').value=db.session.email;}
 </script>
 </body>
 </html>

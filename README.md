@@ -25,7 +25,14 @@ A complete, client-side Enterprise Resource Planning (ERP) application built wit
 python -m http.server 8080
 ```
 
-Then open http://localhost:8080/nexus-erp.html — any credentials work (demo environment).
+Then open http://localhost:8080/nexus-erp.html and sign in with a demo account:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Administrator | `admin@nexuserp.io` | `admin123` |
+| Manager | `manager@nexuserp.io` | `manager123` |
+| Analyst | `analyst@nexuserp.io` | `analyst123` |
+| Viewer | `viewer@nexuserp.io` | `viewer123` |
 
 ## Tech
 
