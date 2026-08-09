@@ -338,7 +338,7 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
     <div class="nav-sec">System</div>
     <a class="nav-item" data-view="settings" title="Settings"><i class="fa-solid fa-gear"></i><span class="nav-label">Settings</span></a>
   </nav>
-  <div class="sidebar-foot"><div class="sys-card"><span class="pulse"></span><div><b>All systems operational</b><small id="sysRole" class="muted" style="display:block;font-size:11px">Signed in as Administrator</small></div></div></div>
+  <div class="sidebar-foot"><div class="sys-card"><span class="pulse"></span><div><b>All systems operational</b><small id="sysRole" class="muted" style="display:block;font-size:11px">Signed in as Administrator</small><small id="sysRoleDesc" class="muted" style="display:block;font-size:10.5px;opacity:.8">Complete access, including delete &amp; reset</small></div></div></div>
 </aside>
 <div id="sbOverlay"></div>
 
@@ -519,8 +519,27 @@ function changeStatus(o,ns){if(o.status===ns)return;if(ns==='Cancelled'&&o.statu
 
 /* ================= PERMISSIONS ================= */
 const ROLE_RANK={Viewer:1,Analyst:2,Manager:3,Administrator:4};
+const ROLE_DESC={
+  Viewer:'Read-only access across core modules',
+  Analyst:'Read-only + exports across all modules',
+  Manager:'Full business operations, no deletions',
+  Administrator:'Complete access, including delete & reset'
+};
+const ROLE_MODULES={
+  Viewer:['dashboard','orders','inventory','customers','procurement','reports'],
+  Analyst:['dashboard','orders','inventory','customers','procurement','finance','reports','settings'],
+  Manager:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings'],
+  Administrator:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings']
+};
 function can(p){return (ROLE_RANK[db.profile.role]||1)>=(p==='view'?1:p==='export'?2:p==='create'?3:p==='edit'?3:4);}
 function guard(p,msg){if(!can(p)){toast(msg||'Insufficient permissions for this action','fa-lock','warn');return false;}return true;}
+function canViewModule(v){return (ROLE_MODULES[db.profile.role]||[]).includes(v);}
+function applyRoleUI(){
+  $$('.nav-item').forEach(n=>n.style.display=canViewModule(n.dataset.view)?'':'none');
+  const nb=$('#btnNewOrder');if(nb)nb.style.display=can('create')?'':'none';
+  const sr=$('#sysRole');if(sr)sr.textContent='Signed in as '+db.profile.role;
+  const sd=$('#sysRoleDesc');if(sd)sd.textContent=ROLE_DESC[db.profile.role]||'';
+}
 
 /* ================= AUTH ================= */
 const DEMO_ACCOUNTS={
@@ -546,7 +565,7 @@ function submitLogin(e){
   err.style.display='none';
   db.profile.role=acc.role;db.profile.name=acc.name;
   db.session={email,role:acc.role,time:new Date().toISOString()};
-  save();renderUserChip();updateNotifDot();
+  save();renderUserChip();updateNotifDot();applyRoleUI();
   $('#login').classList.add('hidden');
   toast(`Welcome, ${acc.name.split(' ')[0]} — signed in as ${acc.role}`,'fa-hand');
   if(currentView&&VIEWS[currentView])navigate(currentView);
@@ -1153,6 +1172,7 @@ const VIEWS={
 };
 function navigate(v){
   if(!VIEWS[v])return;
+  if(!canViewModule(v)){toast(`Access denied — the ${db.profile.role} role cannot open ${VIEWS[v].title}`,'fa-lock','warn');v='dashboard';if(!canViewModule(v))return;}
   currentView=v;
   $$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===v));
   destroyCharts();
@@ -1234,6 +1254,7 @@ load();
 if(db.ui&&db.ui.collapsed&&window.innerWidth>1080)document.body.classList.add('collapsed');
 renderUserChip();
 updateNotifDot();
+applyRoleUI();
 bindTopbar();
 applyTheme(db.theme||'light',false);
 navigate('dashboard');
