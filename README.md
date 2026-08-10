@@ -8,6 +8,10 @@ A complete, client-side Enterprise Resource Planning (ERP) application built wit
 - **Sales Orders** — Create, edit, view, filter, sort, and delete orders with automatic stock allocation
 - **Quotes** — Draft / Sent / Approved pipeline with one-click conversion into a live order
 - **Role-Based Permissions** — Four roles with a strict capability ladder (create/edit/delete/export) **plus module-level visibility**: Viewer can't open Finance/HR/Settings, Analyst is read-only + exports (no HR), Manager has full operations but no deletions, Administrator is unrestricted. Restricted modules are hidden in the sidebar and direct navigation is blocked.
+- **Audit Log** — Searchable trail of every action (who/what/when) across all modules with user/module filters and CSV export; visible to Manager & Administrator
+- **Configurable Billing** — Tax rate, shipping fee, and free-shipping threshold set in Settings, applied to new orders and quotes, plus per-order discount %
+- **Returns & Refunds** — Record a return on a Delivered order (restore stock, log movement, apply refund) with refund-aware payment status
+- **Auto-PO** — One-click purchase order generation for every item below its reorder level
 - **Inventory** — Stock levels, low-stock alerts, valuation, quick adjustments, and a full stock-movement history (sales, cancellations, PO receipts, manual adjustments)
 - **Payments** — Order-level payment tracking with Paid / Partially Paid / Unpaid status
 - **Invoices** — Auto-generated from Delivered orders, linked back to the order, with Mark Paid flow that syncs to the order

@@ -336,6 +336,7 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
     <a class="nav-item" data-view="finance" title="Finance"><i class="fa-solid fa-wallet"></i><span class="nav-label">Finance</span></a>
     <a class="nav-item" data-view="reports" title="Reports"><i class="fa-solid fa-chart-line"></i><span class="nav-label">Reports</span></a>
     <div class="nav-sec">System</div>
+    <a class="nav-item" data-view="audit" title="Audit Log"><i class="fa-solid fa-shield-halved"></i><span class="nav-label">Audit Log</span></a>
     <a class="nav-item" data-view="settings" title="Settings"><i class="fa-solid fa-gear"></i><span class="nav-label">Settings</span></a>
   </nav>
   <div class="sidebar-foot"><div class="sys-card"><span class="pulse"></span><div><b>All systems operational</b><small id="sysRole" class="muted" style="display:block;font-size:11px">Signed in as Administrator</small><small id="sysRoleDesc" class="muted" style="display:block;font-size:10.5px;opacity:.8">Complete access, including delete &amp; reset</small></div></div></div>
@@ -393,7 +394,7 @@ const hoursAgoISO=h=>new Date(Date.now()-h*36e5).toISOString();
 const gridC=()=>getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
 function timeAgo(iso){const s=(Date.now()-new Date(iso))/1e3;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';if(s<604800)return Math.floor(s/86400)+'d ago';return fmtDate(iso);}
 function avatar(name,size=32){const h=[...name].reduce((a,c)=>a+c.charCodeAt(0),0)%360;const ini=name.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return `<span class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.36)}px;background:hsl(${h} 70% 45% / .16);color:hsl(${h} 72% 45%)">${esc(ini)}</span>`;}
-const STYLE={'Pending':'b-amber','Processing':'b-blue','Shipped':'b-violet','Delivered':'b-green','Cancelled':'b-red','Paid':'b-green','Partially Paid':'b-amber','Unpaid':'b-gray','Overdue':'b-red','Active':'b-green','On Leave':'b-amber','Approved':'b-blue','In Transit':'b-violet','Received':'b-green','Out of Stock':'b-red','Low Stock':'b-amber','In Stock':'b-green','VIP':'b-gold','Standard':'b-gray','New':'b-blue','Draft':'b-gray','Sent':'b-blue','Converted':'b-violet','Sales':'b-violet','Engineering':'b-blue','Finance':'b-green','Human Resources':'b-gold','Support':'b-pink','Marketing':'b-pink','Operations':'b-gray'};
+const STYLE={'Pending':'b-amber','Processing':'b-blue','Shipped':'b-violet','Delivered':'b-green','Cancelled':'b-red','Paid':'b-green','Partially Paid':'b-amber','Unpaid':'b-gray','Overdue':'b-red','Active':'b-green','On Leave':'b-amber','Approved':'b-blue','In Transit':'b-violet','Received':'b-green','Out of Stock':'b-red','Low Stock':'b-amber','In Stock':'b-green','VIP':'b-gold','Standard':'b-gray','New':'b-blue','Draft':'b-gray','Sent':'b-blue','Converted':'b-violet','Sales':'b-violet','Return':'b-red','Order Edit':'b-blue','Order Deleted':'b-red','Engineering':'b-blue','Finance':'b-green','Human Resources':'b-gold','Support':'b-pink','Marketing':'b-pink','Operations':'b-gray'};
 const badge=t=>`<span class="badge ${STYLE[t]||'b-gray'}">${esc(t)}</span>`;
 const FLAGS={'United States':'🇺🇸','United Kingdom':'🇬🇧','Mexico':'🇲🇽','Singapore':'🇸🇬','Germany':'🇩🇪','Canada':'🇨🇦','Australia':'🇦🇺','South Korea':'🇰🇷','United Arab Emirates':'🇦🇪','Sweden':'🇸🇪','China':'🇨🇳'};
 function pct(cur,prev){return prev>0?((cur-prev)/prev*100):null;}
@@ -464,11 +465,14 @@ function seed(){
   const movements=[];
   const mv=[['PRD-1014',40,'PO Received','PO-9003'],['PRD-1006',-12,'Sale','ORD-1028'],['PRD-1003',-5,'Sale','ORD-1031'],['PRD-1001',60,'PO Received','PO-9001'],['PRD-1008',-3,'Manual Adjustment','']];
   mv.forEach((m,i)=>movements.push({id:'ms'+i,productId:m[0],productName:(products.find(p=>p.id===m[0])||{}).name||'Unknown',delta:m[1],reason:m[2],ref:m[3],by:'Alex Morgan',time:hoursAgoISO((i+1)*7)}));
-  return {version:2,profile:{name:'Alex Morgan',email:'alex.morgan@nexuserp.io',role:'Administrator'},prefs:{emailNotif:true,digest:false,lowStock:true},ui:{collapsed:false},theme:'light',seq:{order:1065,product:1015,cust:511,emp:211,sup:307,po:9007,inv:2411,quote:2407},products,customers,employees,suppliers,orders,invoices,quotes,pos,notifications,activities,movements};
+  const audit=[];
+  const au=[['fa-right-to-bracket','Signed in','Auth','admin@nexuserp.io'],['fa-cart-shopping','New order','Orders',orders[0].id+' · '+orders[0].customerName],['fa-file-invoice-dollar','Invoice paid','Finance','INV-2401'],['fa-box','Stock received','Inventory','120 × Glide Wireless Mouse'],['fa-file-lines','Quote created','Quotes','QT-2402'],['fa-gear','Settings updated','Settings','Tax rate set to 8%']];
+  au.forEach((a,i)=>audit.push({id:'sd'+i,time:hoursAgoISO(2+i*9),user:'Alex Morgan',role:'Administrator',icon:a[0],action:a[1],module:a[2],target:a[3],detail:''}));
+  return {version:2,profile:{name:'Alex Morgan',email:'alex.morgan@nexuserp.io',role:'Administrator'},config:{taxRate:8,shippingFee:25,freeShipOver:1000},prefs:{emailNotif:true,digest:false,lowStock:true},ui:{collapsed:false},theme:'light',seq:{order:1065,product:1015,cust:511,emp:211,sup:307,po:9007,inv:2411,quote:2407},products,customers,employees,suppliers,orders,invoices,quotes,pos,notifications,activities,movements,audit};
 }
 let db;
 function save(){localStorage.setItem(LS_KEY,JSON.stringify(db));}
-function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.orders)&&(d.version===1||d.version===2)){if(!d.quotes)d.quotes=[];if(!d.movements)d.movements=[];if(!d.seq)d.seq={};if(!d.seq.quote)d.seq.quote=2407;if(!Array.isArray(d.orders[0].payments))d.orders.forEach(o=>o.payments=o.payments||[]);d.version=2;save();db=d;return;}}}catch(e){}db=seed();save();}
+function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.orders)&&(d.version===1||d.version===2)){if(!d.quotes)d.quotes=[];if(!d.movements)d.movements=[];if(!d.seq)d.seq={};if(!d.seq.quote)d.seq.quote=2407;if(!d.audit)d.audit=[];if(!d.config)d.config={taxRate:8,shippingFee:25,freeShipOver:1000};if(!Array.isArray(d.orders[0].payments))d.orders.forEach(o=>o.payments=o.payments||[]);d.orders.forEach(o=>{if(!Array.isArray(o.returns))o.returns=[];if(o.discPct==null)o.discPct=0;});if(!Array.isArray(d.quotes[0]&&d.quotes[0].returns))d.quotes.forEach(q=>{if(q.discPct==null)q.discPct=0;});d.version=2;save();db=d;return;}}}catch(e){}db=seed();save();}
 
 /* ================= STATE ================= */
 let currentView='';
@@ -483,7 +487,8 @@ const ctl={
   inventory:{q:'',cat:'all',page:1,per:10},
   movements:{q:'',page:1,per:10},
   customers:{q:'',tier:'all',page:1,per:8},
-  hr:{q:'',dept:'all',page:1,per:8}
+  hr:{q:'',dept:'all',page:1,per:8},
+  audit:{q:'',module:'all',user:'all',page:1,per:12}
 };
 const rerender=()=>navigate(currentView);
 
@@ -504,6 +509,10 @@ function openModal(html,width=560){const root=$('#modalRoot');root.innerHTML=`<d
 function closeModal(){const root=$('#modalRoot');root.classList.remove('show');document.body.style.overflow='';setTimeout(()=>{if(!root.classList.contains('show'))root.innerHTML='';},200);}
 function confirmModal(title,msg,onOk,okLabel='Delete'){openModal(`<div class="modal-head"><div class="confirm-ico"><i class="fa-solid fa-triangle-exclamation"></i></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div><div class="modal-body"><h3 style="margin-bottom:6px">${esc(title)}</h3><p class="muted">${esc(msg)}</p></div><div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-danger" id="cfmOk">${esc(okLabel)}</button></div>`,440);$('#cfmOk').onclick=()=>{closeModal();onOk();};}
 function addActivity(icon,text){db.activities.unshift({id:'a'+Date.now(),icon,text,time:new Date().toISOString()});db.activities=db.activities.slice(0,30);}
+function audit(icon,action,module,target,detail){
+  db.audit.unshift({id:'ad'+Date.now()+Math.floor(Math.random()*999),time:new Date().toISOString(),user:db.profile.name,role:db.profile.role,icon,action,module,target:target||'',detail:detail||''});
+  db.audit=db.audit.slice(0,800);
+}
 function pushNotif(icon,title,desc){db.notifications.unshift({id:'n'+Date.now(),icon,title,desc,time:new Date().toISOString(),read:false});db.notifications=db.notifications.slice(0,20);updateNotifDot();}
 function updateNotifDot(){const n=db.notifications.filter(x=>!x.read).length;const d=$('#notifDot');d.style.display=n?'flex':'none';d.textContent=n>9?'9+':n;}
 function paginate(list,c){const pages=Math.max(1,Math.ceil(list.length/c.per));if(c.page>pages)c.page=pages;const start=(c.page-1)*c.per;return {slice:list.slice(start,start+c.per),pages,total:list.length};}
@@ -528,8 +537,8 @@ const ROLE_DESC={
 const ROLE_MODULES={
   Viewer:['dashboard','orders','inventory','customers','procurement','reports'],
   Analyst:['dashboard','orders','inventory','customers','procurement','finance','reports','settings'],
-  Manager:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings'],
-  Administrator:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings']
+  Manager:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings','audit'],
+  Administrator:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings','audit']
 };
 function can(p){return (ROLE_RANK[db.profile.role]||1)>=(p==='view'?1:p==='export'?2:p==='create'?3:p==='edit'?3:4);}
 function guard(p,msg){if(!can(p)){toast(msg||'Insufficient permissions for this action','fa-lock','warn');return false;}return true;}
@@ -554,7 +563,7 @@ function fillRoleCreds(role){
   $('#liEmail').value=acc[0];$('#liPass').value=acc[1].pass;$('#liRole').value=role;
   const err=$('#liError');if(err)err.style.display='none';
 }
-function showLogin(){db.session=null;save();$('#liPass').value='';const err=$('#liError');if(err)err.style.display='none';$('#login').classList.remove('hidden');}
+function showLogin(){audit('fa-right-from-bracket','Signed out','Auth',db.session&&db.session.email||'');db.session=null;save();$('#liPass').value='';const err=$('#liError');if(err)err.style.display='none';$('#login').classList.remove('hidden');}
 function submitLogin(e){
   e.preventDefault();
   const email=$('#liEmail').value.trim().toLowerCase();
@@ -565,6 +574,7 @@ function submitLogin(e){
   err.style.display='none';
   db.profile.role=acc.role;db.profile.name=acc.name;
   db.session={email,role:acc.role,time:new Date().toISOString()};
+  audit('fa-right-to-bracket','Signed in','Auth',email,acc.role);
   save();renderUserChip();updateNotifDot();applyRoleUI();
   $('#login').classList.add('hidden');
   toast(`Welcome, ${acc.name.split(' ')[0]} — signed in as ${acc.role}`,'fa-hand');
@@ -578,11 +588,14 @@ function logMovement(productId,delta,reason,ref){
   db.movements=db.movements.slice(0,500);
 }
 function orderPaid(o){return (o.payments||[]).reduce((s,p)=>s+p.amount,0);}
-function payStatus(o){if(o.status==='Cancelled')return'Cancelled';const t=o.total,paid=orderPaid(o);if(paid>=t-0.005)return'Paid';if(paid>0)return'Partially Paid';return'Unpaid';}
+function orderRefunded(o){return (o.returns||[]).reduce((s,r)=>s+r.amount,0);}
+function orderNet(o){return Math.max(0,o.total-orderRefunded(o));}
+function payStatus(o){if(o.status==='Cancelled')return'Cancelled';const net=orderNet(o),paid=orderPaid(o);if(paid>=net-0.005)return'Paid';if(paid>0)return'Partially Paid';return'Unpaid';}
 function createInvoiceForOrder(o){
   const ex=db.invoices.find(i=>i.orderId===o.id);if(ex)return ex;
   const inv={id:'INV-'+(db.seq.inv++),orderId:o.id,customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:new Date().toISOString(),due:new Date(Date.now()+30*864e5).toISOString(),status:'Pending',paidOn:null};
   db.invoices.unshift(inv);o.invoiceId=inv.id;
+  audit('fa-file-invoice-dollar','Invoice generated','Finance',inv.id,'From order '+o.id+' · '+money2(inv.amount));
   return inv;
 }
 function convertQuote(id){
@@ -590,6 +603,7 @@ function convertQuote(id){
   const order={id:'ORD-'+(db.seq.order++),customerId:q.customerId,customerName:q.customerName,items:q.items.map(i=>({...i})),sub:q.sub,tax:q.tax,ship:q.ship,total:q.total,status:'Pending',date:new Date().toISOString(),payments:[],quoteId:q.id};
   db.orders.unshift(order);applyStock(order,-1,'Sale',order.id);q.status='Converted';
   addActivity('fa-arrow-right',`Quote ${q.id} converted to ${order.id}`);
+  audit('fa-arrow-right','Quote converted','Quotes',q.id,`→ ${order.id} · ${money2(order.total)}`);
   pushNotif('fa-file-invoice-dollar','Quote converted',`${q.id} → order ${order.id} for ${q.customerName}`);
   toast(`Quote converted — ${order.id} created`,'fa-arrow-right');
 }
@@ -657,7 +671,7 @@ function viewOrdersList(){
   list.sort((a,b)=>{let x=a[c.sortKey],y=b[c.sortKey];if(c.sortKey==='total'){x=+x;y=+y;}else{x=String(x).toLowerCase();y=String(y).toLowerCase();}return (x<y?-1:x>y?1:0)*c.sortDir;});
   const {slice,pages,total}=paginate(list,c);
   const ico=k=>c.sortKey===k?`<i class="fa-solid fa-caret-${c.sortDir===1?'up':'down'}"></i>`:'';
-  const rows=slice.map(o=>`<tr><td class="mono strong">${o.id}</td><td>${avatar(o.customerName,26)} ${esc(o.customerName)}</td><td class="muted">${fmtDate(o.date)}</td><td class="muted">${o.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(o.total)}</td><td>${badge(o.status)}</td><td>${badge(payStatus(o))}${orderPaid(o)>0?`<span class="muted small" style="margin-left:6px" title="Paid ${money2(orderPaid(o))} of ${money2(o.total)}">${money2(orderPaid(o))}</span>`:''}</td><td><div class="row-actions"><button class="icon-btn sm" data-oact="view" data-id="${o.id}" title="View"><i class="fa-regular fa-eye"></i></button>${can('edit')?`<button class="icon-btn sm" data-oact="edit" data-id="${o.id}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-oact="del" data-id="${o.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
+  const rows=slice.map(o=>`<tr><td class="mono strong">${o.id}</td><td>${avatar(o.customerName,26)} ${esc(o.customerName)}</td><td class="muted">${fmtDate(o.date)}</td><td class="muted">${o.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(o.total)}</td><td>${badge(o.status)}</td><td>${badge(payStatus(o))}${orderPaid(o)>0?`<span class="muted small" style="margin-left:6px" title="Paid ${money2(orderPaid(o))} of ${money2(orderNet(o))}">${money2(orderPaid(o))}</span>`:''}</td><td><div class="row-actions"><button class="icon-btn sm" data-oact="view" data-id="${o.id}" title="View"><i class="fa-regular fa-eye"></i></button>${can('edit')?`<button class="icon-btn sm" data-oact="edit" data-id="${o.id}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-oact="del" data-id="${o.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
   return `<div class="toolbar"><div class="chips">${chips}</div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnOrdersExport"><i class="fa-solid fa-download"></i> Export CSV</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnOrdersNew"><i class="fa-solid fa-plus"></i> New Order</button>`:''}</div></div>
   <div class="card"><div class="toolbar inner"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="ordersSearch" placeholder="Search by ID, customer or product…" value="${esc(c.q)}"></div><div class="spacer"></div><span class="muted small">${total} order${total===1?'':'s'}</span></div>
   <div class="tbl-wrap"><table class="tbl"><thead><tr><th data-osort="id">Order ${ico('id')}</th><th data-osort="customerName">Customer ${ico('customerName')}</th><th data-osort="date">Date ${ico('date')}</th><th>Items</th><th data-osort="total">Total ${ico('total')}</th><th data-osort="status">Status ${ico('status')}</th><th>Payment</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No orders match your filters</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
@@ -681,7 +695,7 @@ function mountOrders(){
     $$('#view [data-qact]').forEach(b=>b.onclick=()=>{const q=db.quotes.find(x=>x.id===b.dataset.id);const a=b.dataset.qact;
       if(a==='view')openQuoteView(q.id);
       if(a==='convert'){if(!guard('create'))return;convertQuote(q.id);save();rerender();}
-      if(a==='del')confirmModal('Delete quote',`Delete ${q.id}?`,()=>{db.quotes.splice(db.quotes.indexOf(q),1);save();toast('Quote deleted','fa-trash','warn');rerender();});});
+      if(a==='del')confirmModal('Delete quote',`Delete ${q.id}?`,()=>{db.quotes.splice(db.quotes.indexOf(q),1);audit('fa-trash','Quote deleted','Quotes',q.id);save();toast('Quote deleted','fa-trash','warn');rerender();});});
     const nq=$('#btnQuoteNew');if(nq)nq.onclick=()=>openOrderModal(null,'quote');
     return;
   }
@@ -691,9 +705,9 @@ function mountOrders(){
   $$('#view [data-oact]').forEach(b=>b.onclick=()=>{const o=db.orders.find(x=>x.id===b.dataset.id);if(!o)return;const a=b.dataset.oact;
     if(a==='view')openOrderView(o.id);
     if(a==='edit'){if(!guard('edit'))return;openOrderModal(o);}
-    if(a==='del'){if(!guard('delete'))return;confirmModal('Delete order',`This will permanently delete ${o.id} and restore its stock. This action cannot be undone.`,()=>{if(o.status!=='Cancelled')applyStock(o,1,'Order Deleted',o.id);db.orders.splice(db.orders.indexOf(o),1);addActivity('fa-trash','Order '+o.id+' deleted');save();toast('Order deleted','fa-trash','warn');rerender();});}});
+    if(a==='del'){if(!guard('delete'))return;confirmModal('Delete order',`This will permanently delete ${o.id} and restore its stock. This action cannot be undone.`,()=>{if(o.status!=='Cancelled')applyStock(o,1,'Order Deleted',o.id);db.orders.splice(db.orders.indexOf(o),1);addActivity('fa-trash','Order '+o.id+' deleted');audit('fa-trash','Order deleted','Orders',o.id);save();toast('Order deleted','fa-trash','warn');rerender();});}});
   const nn=$('#btnOrdersNew');if(nn)nn.onclick=()=>{if(guard('create'))openOrderModal(null);};
-  const ne=$('#btnOrdersExport');if(ne)ne.onclick=()=>{if(!guard('export'))return;exportCSV('orders.csv',['Order ID','Customer','Date','Status','Subtotal','Tax','Shipping','Total'],db.orders.map(o=>[o.id,o.customerName,fmtDate(o.date),o.status,o.sub.toFixed(2),o.tax.toFixed(2),o.ship.toFixed(2),o.total.toFixed(2)]));toast('Orders exported to CSV');};
+  const ne=$('#btnOrdersExport');if(ne)ne.onclick=()=>{if(!guard('export'))return;exportCSV('orders.csv',['Order ID','Customer','Date','Status','Subtotal','Tax','Shipping','Total'],db.orders.map(o=>[o.id,o.customerName,fmtDate(o.date),o.status,o.sub.toFixed(2),o.tax.toFixed(2),o.ship.toFixed(2),o.total.toFixed(2)]));audit('fa-download','Exported','Orders','orders.csv');save();toast('Orders exported to CSV');};
 }
 
 /* ----- Inventory ----- */
@@ -717,7 +731,7 @@ function viewInventory(){
   const low=db.products.filter(p=>p.stock<=p.reorder);
   const rows=slice.map(p=>{const st=p.stock===0?'Out of Stock':p.stock<=p.reorder?'Low Stock':'In Stock';
     return `<tr><td class="mono muted">${p.sku}</td><td><div style="display:flex;align-items:center;gap:10px">${avatar(p.name,28)}<div><b style="font-size:13px">${esc(p.name)}</b><div class="muted small">${esc(p.supplier)}</div></div></div></td><td><span class="badge b-gray">${p.category}</span></td><td class="strong">${money2(p.price)}</td><td><div class="stepper">${can('edit')?`<button class="icon-btn sm" data-adj="-1" data-id="${p.id}" ${p.stock<=0?'disabled':''}><i class="fa-solid fa-minus"></i></button>`:'<span></span>'}<span class="stock-n">${p.stock}</span>${can('edit')?`<button class="icon-btn sm" data-adj="1" data-id="${p.id}"><i class="fa-solid fa-plus"></i></button>`:'<span></span>'}</div></td><td>${badge(st)}</td><td class="muted">${money(p.stock*p.cost)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-pact2="edit" data-id="${p.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-pact2="del" data-id="${p.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
-  return tabs+`${low.length?`<div class="alert-strip"><i class="fa-solid fa-boxes-stacked"></i><span><b>${low.length}</b> item${low.length>1?'s':''} need reordering. Use Procurement → New PO to restock.</span></div>`:''}
+  return tabs+`${low.length?`<div class="alert-strip"><i class="fa-solid fa-boxes-stacked"></i><span><b>${low.length}</b> item${low.length>1?'s':''} need reordering.</span>${can('create')?`<button class="btn btn-primary btn-xs" id="btnAutoPo" style="margin-left:auto"><i class="fa-solid fa-truck-fast"></i> Auto-PO</button>`:''}</div>`:''}
   <div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="invSearch" placeholder="Search name, SKU, supplier…" value="${esc(c.q)}"></div><select id="invCat" style="width:170px"><option value="all">All Categories</option>${cats.map(x=>`<option ${c.cat===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnInvExport"><i class="fa-solid fa-download"></i> Export</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> Add Product</button>`:''}</div></div>
   <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Stock Value</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No products found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
@@ -731,12 +745,30 @@ function mountInventory(){
   }
   bindSearch('#invSearch',c);restoreFocus(c,'#invSearch');bindPager(c);
   $('#invCat').onchange=e=>{c.cat=e.target.value;c.page=1;rerender();};
-  $$('#view [data-adj]').forEach(b=>b.onclick=()=>{if(!guard('edit'))return;const p=db.products.find(x=>x.id===b.dataset.id);p.stock=Math.max(0,p.stock+ +b.dataset.adj);logMovement(p.id,+b.dataset.adj,'Manual Adjustment','');addActivity('fa-arrows-rotate',`${b.dataset.adj>0?'Stock added':'Stock removed'}: ${Math.abs(b.dataset.adj)} × ${p.name}`);save();rerender();});
+  $$('#view [data-adj]').forEach(b=>b.onclick=()=>{if(!guard('edit'))return;const p=db.products.find(x=>x.id===b.dataset.id);p.stock=Math.max(0,p.stock+ +b.dataset.adj);logMovement(p.id,+b.dataset.adj,'Manual Adjustment','');addActivity('fa-arrows-rotate',`${b.dataset.adj>0?'Stock added':'Stock removed'}: ${Math.abs(b.dataset.adj)} × ${p.name}`);audit('fa-arrows-rotate',`Stock ${b.dataset.adj>0?'increased':'decreased'}`,'Inventory',p.name,`${+b.dataset.adj} units → ${p.stock}`);save();rerender();});
   $$('#view [data-pact2]').forEach(b=>b.onclick=()=>{const p=db.products.find(x=>x.id===b.dataset.id);
     if(b.dataset.pact2==='edit'){if(!guard('edit'))return;openProductModal(p);}
-    else{if(!guard('delete'))return;confirmModal('Delete product',`Remove "${p.name}" from inventory? Existing orders keep their history.`,()=>{db.products.splice(db.products.indexOf(p),1);addActivity('fa-trash','Product '+p.name+' removed');save();toast('Product deleted','fa-trash','warn');rerender();});}});
+    else{if(!guard('delete'))return;confirmModal('Delete product',`Remove "${p.name}" from inventory? Existing orders keep their history.`,()=>{db.products.splice(db.products.indexOf(p),1);addActivity('fa-trash','Product '+p.name+' removed');audit('fa-trash','Product deleted','Inventory',p.name);save();toast('Product deleted','fa-trash','warn');rerender();});}});
   const ni=$('#btnInvNew');if(ni)ni.onclick=()=>{if(guard('create'))openProductModal(null);};
-  const nx=$('#btnInvExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('inventory.csv',['SKU','Name','Category','Supplier','Price','Cost','Stock','Reorder Level','Stock Value'],db.products.map(p=>[p.sku,p.name,p.category,p.supplier,p.price.toFixed(2),p.cost.toFixed(2),p.stock,p.reorder,(p.stock*p.cost).toFixed(2)]));toast('Inventory exported to CSV');};
+  const nx=$('#btnInvExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('inventory.csv',['SKU','Name','Category','Supplier','Price','Cost','Stock','Reorder Level','Stock Value'],db.products.map(p=>[p.sku,p.name,p.category,p.supplier,p.price.toFixed(2),p.cost.toFixed(2),p.stock,p.reorder,(p.stock*p.cost).toFixed(2)]));audit('fa-download','Exported','Inventory','inventory.csv');save();toast('Inventory exported to CSV');};
+  const ap=$('#btnAutoPo');if(ap)ap.onclick=()=>{
+    if(!guard('create'))return;
+    const n=createAutoPo();
+    if(n){save();toast(`${n} PO${n>1?'s':''} created for low-stock items`);rerender();}
+  };
+}
+function createAutoPo(){
+  if(!guard('create'))return 0;
+  const low=db.products.filter(p=>p.stock<=p.reorder);
+  if(!low.length){toast('No items need reordering','fa-circle-check');return 0;}
+  let n=0;
+  low.forEach(p=>{const sup=db.suppliers.find(s=>s.name===p.supplier)||db.suppliers[0];if(!sup)return;
+    const qty=Math.max(p.reorder*2-p.stock,1);
+    db.pos.unshift({id:'PO-'+(db.seq.po++),supplierId:sup.id,supplierName:sup.name,productId:p.id,productName:p.name,qty,cost:p.cost,status:'Pending',eta:new Date(Date.now()+14*864e5).toISOString(),created:new Date().toISOString()});n++;});
+  audit('fa-truck-fast','Auto-PO created','Procurement',n+' PO(s)',`Restock ${low.length} low-stock item(s)`);
+  addActivity('fa-truck-fast',`Auto-PO: ${n} purchase order${n>1?'s':''} created for low-stock items`);
+  pushNotif('fa-truck-fast','Auto-PO generated',`${n} PO(s) created from reorder list`);
+  return n;
 }
 
 /* ----- Customers ----- */
@@ -757,9 +789,9 @@ function mountCustomers(){
   $('#cusTier').onchange=e=>{c.tier=e.target.value;c.page=1;rerender();};
   $$('#view [data-cact]').forEach(b=>b.onclick=()=>{const x=db.customers.find(v=>v.id===b.dataset.id);
     if(b.dataset.cact==='edit'){if(!guard('edit'))return;openCustomerModal(x);}
-    else{if(!guard('delete'))return;confirmModal('Delete customer',`Remove ${x.company}? Order history will be preserved.`,()=>{db.customers.splice(db.customers.indexOf(x),1);save();toast('Customer deleted','fa-trash','warn');rerender();});}});
+    else{if(!guard('delete'))return;confirmModal('Delete customer',`Remove ${x.company}? Order history will be preserved.`,()=>{db.customers.splice(db.customers.indexOf(x),1);audit('fa-trash','Customer deleted','Customers',x.company);save();toast('Customer deleted','fa-trash','warn');rerender();});}});
   const nc=$('#btnCusNew');if(nc)nc.onclick=()=>{if(guard('create'))openCustomerModal(null);};
-  const nx=$('#btnCusExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('customers.csv',['Company','Contact','Email','Phone','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.email,x.phone,x.country,x.tier]));toast('Customers exported to CSV');};
+  const nx=$('#btnCusExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('customers.csv',['Company','Contact','Email','Phone','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.email,x.phone,x.country,x.tier]));audit('fa-download','Exported','Customers','customers.csv');save();toast('Customers exported to CSV');};
 }
 
 /* ----- HR ----- */
@@ -783,7 +815,7 @@ function mountHR(){
   $$('#view [data-hchip]').forEach(b=>b.onclick=()=>{c.dept=b.dataset.hchip;c.page=1;rerender();});
   $$('#view [data-hact]').forEach(b=>b.onclick=()=>{const e=db.employees.find(v=>v.id===b.dataset.id);
     if(b.dataset.hact==='edit'){if(!guard('edit'))return;openEmployeeModal(e);}
-    else{if(!guard('delete'))return;confirmModal('Delete employee',`Remove ${e.name} from the directory?`,()=>{db.employees.splice(db.employees.indexOf(e),1);save();toast('Employee removed','fa-trash','warn');rerender();});}});
+    else{if(!guard('delete'))return;confirmModal('Delete employee',`Remove ${e.name} from the directory?`,()=>{db.employees.splice(db.employees.indexOf(e),1);audit('fa-trash','Employee deleted','HR',e.name);save();toast('Employee removed','fa-trash','warn');rerender();});}});
   const ne=$('#btnHrNew');if(ne)ne.onclick=()=>{if(guard('create'))openEmployeeModal(null);};
 }
 
@@ -809,14 +841,14 @@ function mountProcurement(){
   $$('#view [data-ptab]').forEach(b=>b.onclick=()=>{procTab=b.dataset.ptab;rerender();});
   $$('#view [data-poact]').forEach(b=>b.onclick=()=>{const po=db.pos.find(x=>x.id===b.dataset.id);const a=b.dataset.poact;
     if(a!=='del'&&!guard('edit'))return;
-    if(a==='approve'){po.status='Approved';toast(po.id+' approved');}
-    if(a==='ship'){po.status='In Transit';toast(po.id+' marked in transit','fa-truck','info');}
-    if(a==='receive'){po.status='Received';const p=db.products.find(x=>x.id===po.productId);if(p){p.stock+=po.qty;logMovement(p.id,po.qty,'PO Received',po.id);}addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);pushNotif('fa-box','Stock received',`${po.qty} × ${po.productName} from ${po.supplierName}`);toast(po.id+' received — stock updated');}
-    if(a==='del'){if(!guard('delete'))return;confirmModal('Delete PO','Delete '+po.id+'? This does not affect stock.',()=>{db.pos.splice(db.pos.indexOf(po),1);save();toast('PO deleted','fa-trash','warn');rerender();});return;}
+    if(a==='approve'){po.status='Approved';audit('fa-check','PO approved','Procurement',po.id);toast(po.id+' approved');}
+    if(a==='ship'){po.status='In Transit';audit('fa-truck','PO shipped','Procurement',po.id);toast(po.id+' marked in transit','fa-truck','info');}
+    if(a==='receive'){po.status='Received';const p=db.products.find(x=>x.id===po.productId);if(p){p.stock+=po.qty;logMovement(p.id,po.qty,'PO Received',po.id);}addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);audit('fa-box','PO received','Procurement',po.id,`${po.qty} × ${po.productName} received into stock`);pushNotif('fa-box','Stock received',`${po.qty} × ${po.productName} from ${po.supplierName}`);toast(po.id+' received — stock updated');}
+    if(a==='del'){if(!guard('delete'))return;confirmModal('Delete PO','Delete '+po.id+'? This does not affect stock.',()=>{db.pos.splice(db.pos.indexOf(po),1);audit('fa-trash','PO deleted','Procurement',po.id);save();toast('PO deleted','fa-trash','warn');rerender();});return;}
     save();rerender();});
   $$('#view [data-sact]').forEach(b=>b.onclick=()=>{const s=db.suppliers.find(x=>x.id===b.dataset.id);
     if(b.dataset.sact==='edit'){if(!guard('edit'))return;openSupplierModal(s);}
-    else{if(!guard('delete'))return;confirmModal('Delete supplier',`Remove ${s.name}?`,()=>{db.suppliers.splice(db.suppliers.indexOf(s),1);save();toast('Supplier deleted','fa-trash','warn');rerender();});}});
+    else{if(!guard('delete'))return;confirmModal('Delete supplier',`Remove ${s.name}?`,()=>{db.suppliers.splice(db.suppliers.indexOf(s),1);audit('fa-trash','Supplier deleted','Procurement',s.name);save();toast('Supplier deleted','fa-trash','warn');rerender();});}});
   const np=$('#btnPoNew');if(np)np.onclick=()=>{if(guard('create'))openPoModal();};
   const ns=$('#btnSupNew');if(ns)ns.onclick=()=>{if(guard('create'))openSupplierModal(null);};
 }
@@ -842,8 +874,8 @@ function viewFinance(){
 function mountFinance(){
   animateKpis();
   $$('#view [data-iact]').forEach(b=>b.onclick=()=>{const i=db.invoices.find(x=>x.id===b.dataset.id);
-    if(b.dataset.iact==='pay'){if(!guard('edit'))return;i.status='Paid';i.paidOn=new Date().toISOString();const o=db.orders.find(x=>x.id===i.orderId);if(o){o.payments=o.payments||[];o.payments.push({id:'p'+Date.now(),amount:i.amount,method:'Bank Transfer',date:new Date().toISOString()});}addActivity('fa-file-invoice-dollar',`Invoice ${i.id} paid by ${i.customerName}`);pushNotif('fa-file-invoice-dollar','Payment received',`${i.id} settled — ${money(i.amount)}`);save();toast(i.id+' marked as paid');rerender();}
-    else{if(!guard('delete'))return;confirmModal('Delete invoice','Delete '+i.id+'?',()=>{db.invoices.splice(db.invoices.indexOf(i),1);save();toast('Invoice deleted','fa-trash','warn');rerender();});}});
+    if(b.dataset.iact==='pay'){if(!guard('edit'))return;i.status='Paid';i.paidOn=new Date().toISOString();const o=db.orders.find(x=>x.id===i.orderId);if(o){o.payments=o.payments||[];o.payments.push({id:'p'+Date.now(),amount:i.amount,method:'Bank Transfer',date:new Date().toISOString()});}addActivity('fa-file-invoice-dollar',`Invoice ${i.id} paid by ${i.customerName}`);audit('fa-file-invoice-dollar','Invoice paid','Finance',i.id,`${money2(i.amount)} · ${i.customerName}`);pushNotif('fa-file-invoice-dollar','Payment received',`${i.id} settled — ${money(i.amount)}`);save();toast(i.id+' marked as paid');rerender();}
+    else{if(!guard('delete'))return;confirmModal('Delete invoice','Delete '+i.id+'?',()=>{db.invoices.splice(db.invoices.indexOf(i),1);audit('fa-trash','Invoice deleted','Finance',i.id);save();toast('Invoice deleted','fa-trash','warn');rerender();});}});
   const ni=$('#btnInvNew');if(ni)ni.onclick=()=>{if(guard('create'))openInvoiceModal();};
   const {rev}=monthAgg();const exp=expSeries(rev);
   charts.push(new Chart($('#chFin'),{type:'bar',data:{labels:last12Labels(),datasets:[{label:'Revenue',data:rev.map(v=>Math.round(v)),backgroundColor:'rgba(99,102,241,.75)',hoverBackgroundColor:'#6366f1',borderRadius:6,maxBarThickness:18},{label:'Expenses',data:exp,backgroundColor:'rgba(148,163,184,.5)',hoverBackgroundColor:'#94a3b8',borderRadius:6,maxBarThickness:18}]},options:{maintainAspectRatio:false,plugins:{legend:{labels:{usePointStyle:true,boxWidth:7}},tooltip:tipMoney},scales:{y:{grid:{color:gridC()},ticks:{callback:v=>'$'+(v>=1000?(v/1000)+'k':v)}},x:{grid:{display:false}}}}}));
@@ -877,7 +909,30 @@ function mountReports(){
     if(k==='customers')exportCSV('customers-report.csv',['Company','Contact','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.country,x.tier]));
     if(k==='employees')exportCSV('employees-report.csv',['Name','Role','Department','Salary','Status'],db.employees.map(e=>[e.name,e.role,e.dept,e.salary,e.status]));
     if(k==='json')download('nexus-erp-backup.json','application/json',JSON.stringify(db,null,2));
-    toast('Export ready — download started');});
+    audit('fa-download','Report exported','Reports',k==='json'?'nexus-erp-backup.json':k+'-report.csv');
+    save();toast('Export ready — download started');});
+}
+
+/* ----- Audit Log ----- */
+function viewAudit(){
+  const c=ctl.audit;
+  let list=[...db.audit];
+  if(c.module!=='all')list=list.filter(a=>a.module===c.module);
+  if(c.user!=='all')list=list.filter(a=>a.user===c.user);
+  if(c.q){const q=c.q.toLowerCase();list=list.filter(a=>a.action.toLowerCase().includes(q)||a.target.toLowerCase().includes(q)||a.detail.toLowerCase().includes(q)||a.module.toLowerCase().includes(q));}
+  const {slice,pages,total}=paginate(list,c);
+  const mods=[...new Set(db.audit.map(a=>a.module))];
+  const users=[...new Set(db.audit.map(a=>a.user))];
+  const rows=slice.map(a=>`<tr><td class="muted" style="white-space:nowrap">${fmtDT(a.time)}</td><td><div style="display:flex;align-items:center;gap:9px"><span class="act-ico" style="width:26px;height:26px;font-size:11px"><i class="fa-solid ${a.icon}"></i></span><b style="font-size:12.5px">${esc(a.action)}</b></div></td><td>${badge(a.module)}</td><td class="mono muted">${esc(a.target)}</td><td class="muted">${esc(a.detail)}</td><td>${avatar(a.user,24)} ${esc(a.user)}</td><td><span class="badge b-gray">${a.role}</span></td></tr>`).join('');
+  return `<div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="auditSearch" placeholder="Search action, module, target…" value="${esc(c.q)}"></div><select id="auditMod"><option value="all">All Modules</option>${mods.map(m=>`<option ${c.module===m?'selected':''}>${m}</option>`).join('')}</select><select id="auditUser"><option value="all">All Users</option>${users.map(u=>`<option ${c.user===u?'selected':''}>${u}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnAuditExport"><i class="fa-solid fa-download"></i> Export CSV</button>`:''}</div></div>
+  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Action</th><th>Module</th><th>Target</th><th>Detail</th><th>User</th><th>Role</th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No audit entries match your filters</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+}
+function mountAudit(){
+  const c=ctl.audit;
+  bindSearch('#auditSearch',c);restoreFocus(c,'#auditSearch');bindPager(c);
+  const m=$('#auditMod');if(m)m.onchange=e=>{c.module=e.target.value;c.page=1;rerender();};
+  const u=$('#auditUser');if(u)u.onchange=e=>{c.user=e.target.value;c.page=1;rerender();};
+  const x=$('#btnAuditExport');if(x)x.onclick=()=>{if(!guard('export'))return;exportCSV('audit-log.csv',['Time','User','Role','Module','Action','Target','Detail'],db.audit.map(a=>[fmtDT(a.time),a.user,a.role,a.module,a.action,a.target,a.detail]));audit('fa-download','Exported','Audit','audit-log.csv','Export of audit trail');save();toast('Audit log exported to CSV');};
 }
 
 /* ----- Settings ----- */
@@ -900,6 +955,11 @@ function viewSettings(){
         <div class="pref-row"><div style="flex:1"><b>Low stock alerts</b><p>Notify when items hit reorder level</p></div><label class="switch" style="margin:0"><input type="checkbox" data-pref="lowStock" ${db.prefs.lowStock?'checked':''}><i></i></label></div>
       </div>
     </div></div>
+    <div class="card" style="grid-column:1/-1"><div class="card-h"><h3>Billing &amp; Pricing</h3><p>Defaults applied to new orders and quotes</p></div><div class="card-b"><form id="cfgForm">
+      <div class="frow2"><label>Tax Rate (%)<input type="number" min="0" max="40" step="0.5" id="cf-tax" required value="${db.config.taxRate}"></label><label>Shipping Fee ($)<input type="number" min="0" step="0.01" id="cf-ship" required value="${db.config.shippingFee}"></label></div>
+      <label>Free Shipping Over ($)<input type="number" min="0" step="0.01" id="cf-free" required value="${db.config.freeShipOver}"></label>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save Pricing Defaults</button>
+    </form></div></div>
     <div class="card" style="grid-column:1/-1"><div class="card-h"><h3>Data Management</h3></div><div class="card-b" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-ghost btn-sm" id="btnBackup"><i class="fa-solid fa-download"></i> Download Backup (JSON)</button>
       <span class="muted small">Stored locally in your browser · ${Math.round(JSON.stringify(db).length/1024)} KB</span>
@@ -909,18 +969,19 @@ function viewSettings(){
   </div>`;
 }
 function mountSettings(){
-  $('#profForm').onsubmit=e=>{e.preventDefault();if(!guard('edit'))return;db.profile.name=$('#pfName').value.trim();db.profile.email=$('#pfEmail').value.trim();db.profile.role=$('#pfRole').value;save();renderUserChip();toast('Profile updated');};
+  $('#profForm').onsubmit=e=>{e.preventDefault();if(!guard('edit'))return;db.profile.name=$('#pfName').value.trim();db.profile.email=$('#pfEmail').value.trim();db.profile.role=$('#pfRole').value;audit('fa-user','Profile updated','Settings',db.profile.email);save();renderUserChip();toast('Profile updated');};
+  $('#cfgForm').onsubmit=e=>{e.preventDefault();if(!guard('edit'))return;const tr=+$('#cf-tax').value,sh=+$('#cf-ship').value,fr=+$('#cf-free').value;if(isNaN(tr)||isNaN(sh)||isNaN(fr))return;db.config.taxRate=Math.max(0,Math.min(40,tr));db.config.shippingFee=Math.max(0,sh);db.config.freeShipOver=Math.max(0,fr);audit('fa-sliders','Pricing defaults updated','Settings','',`Tax ${db.config.taxRate}% · Ship ${money2(db.config.shippingFee)} · Free over ${money2(db.config.freeShipOver)}`);save();toast('Pricing defaults saved');};
   $$('#view [data-themechoice]').forEach(b=>b.onclick=()=>applyTheme(b.dataset.themechoice));
-  $$('#view [data-pref]').forEach(s=>s.onchange=()=>{if(!guard('edit')){s.checked=!s.checked;return;}db.prefs[s.dataset.pref]=s.checked;save();toast('Preference saved','fa-sliders','info');});
-  $('#btnBackup').onclick=()=>{if(!guard('export'))return;download('nexus-erp-backup.json','application/json',JSON.stringify(db,null,2));toast('Backup downloaded');};
-  $('#btnReset').onclick=()=>{if(!guard('delete'))return;confirmModal('Reset demo data','All changes will be discarded and fresh demo data will be generated. This cannot be undone.',()=>{localStorage.removeItem(LS_KEY);db=seed();save();applyTheme(db.theme,false);renderUserChip();updateNotifDot();navigate('dashboard');toast('Demo data has been reset','fa-rotate-left','info');},'Reset');};
+  $$('#view [data-pref]').forEach(s=>s.onchange=()=>{if(!guard('edit')){s.checked=!s.checked;return;}db.prefs[s.dataset.pref]=s.checked;audit('fa-sliders','Preference updated','Settings',s.dataset.pref,String(s.checked));save();toast('Preference saved','fa-sliders','info');});
+  $('#btnBackup').onclick=()=>{if(!guard('export'))return;download('nexus-erp-backup.json','application/json',JSON.stringify(db,null,2));audit('fa-download','Backup downloaded','Settings','nexus-erp-backup.json');save();toast('Backup downloaded');};
+  $('#btnReset').onclick=()=>{if(!guard('delete'))return;confirmModal('Reset demo data','All changes will be discarded and fresh demo data will be generated. This cannot be undone.',()=>{audit('fa-rotate-left','Demo data reset','Settings');localStorage.removeItem(LS_KEY);db=seed();save();applyTheme(db.theme,false);renderUserChip();updateNotifDot();navigate('dashboard');toast('Demo data has been reset','fa-rotate-left','info');},'Reset');};
 }
 
 /* ================= MODAL FORMS ================= */
 let draft={items:[],editingId:null,mode:'order'};
 function openOrderModal(order,mode='order'){
   const editing=!!order;
-  draft={mode,items:editing?order.items.map(i=>({...i})):[{productId:'',qty:1}],editingId:editing?order.id:null};
+  draft={mode,items:editing?order.items.map(i=>({...i})):[{productId:'',qty:1}],editingId:editing?order.id:null,discPct:editing?(order.discPct||0):0};
   const isQ=mode==='quote';
   const custOpts=db.customers.map(c=>`<option value="${c.id}" ${editing&&order.customerId===c.id?'selected':''}>${esc(c.company)}</option>`).join('');
   const stOpts=isQ?['Draft','Sent','Approved'].map(s=>`<option ${editing&&order.status===s?'selected':''}>${s}</option>`).join(''):['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${editing&&order.status===s?'selected':''}>${s}</option>`).join('');
@@ -930,6 +991,7 @@ function openOrderModal(order,mode='order'){
     <label>Status<select id="of-status">${stOpts}</select></label>
     <div class="items-label"><span>Line Items</span><button type="button" class="btn btn-ghost btn-xs" id="of-additem"><i class="fa-solid fa-plus"></i> Add Item</button></div>
     <div id="of-items"></div>
+    <div class="frow2" style="margin-top:12px"><label>Discount %<input type="number" min="0" max="100" step="0.5" id="of-disc" value="${draft.discPct}"></label></div>
     <div class="of-totals" id="of-totals"></div>
   </form>
   <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="of-save"><i class="fa-solid fa-check"></i> ${editing?'Save Changes':(isQ?'Create Quote':'Create Order')}</button></div>`,660);
@@ -937,6 +999,7 @@ function openOrderModal(order,mode='order'){
   $('#orderForm').onsubmit=e=>{e.preventDefault();saveOrder();};
   $('#of-additem').onclick=()=>{draft.items.push({productId:'',qty:1});renderDraft();};
   $('#of-save').onclick=saveOrder;
+  $('#of-disc').oninput=()=>{draft.discPct=+$('#of-disc').value||0;renderDraft();};
 }
 function renderDraft(){
   const wrap=$('#of-items');
@@ -945,9 +1008,12 @@ function renderDraft(){
     const p=db.products.find(x=>x.id===it.productId);
     return `<div class="draft-row"><select data-di="${idx}" data-f="productId">${opts}</select><input type="number" min="1" max="999" value="${it.qty}" data-di="${idx}" data-f="qty"><span class="draft-line">${p?money2(p.price*it.qty):'—'}</span><button type="button" class="icon-btn sm danger" data-del="${idx}"><i class="fa-regular fa-trash-can"></i></button></div>`;
   }).join('');
+  const cfg=db.config||{taxRate:8,shippingFee:25,freeShipOver:1000};
   const sub=draft.items.reduce((s,it)=>{const p=db.products.find(x=>x.id===it.productId);return s+(p?p.price*it.qty:0);},0);
-  const tax=sub*.08,ship=sub>1000||sub===0?0:25;
-  $('#of-totals').innerHTML=`<div>Subtotal<span>${money2(sub)}</span></div><div>Tax (8%)<span>${money2(tax)}</span></div><div>Shipping<span>${ship?money2(ship):'Free'}</span></div><div class="tt">Total<span>${money2(sub+tax+ship)}</span></div>`;
+  const discPct=Math.max(0,Math.min(100,draft.discPct||0));
+  const disc=sub*discPct/100,taxable=sub-disc;
+  const tax=taxable*cfg.taxRate/100,ship=sub>cfg.freeShipOver||sub===0?0:cfg.shippingFee;
+  $('#of-totals').innerHTML=`<div>Subtotal<span>${money2(sub)}</span></div>${discPct?`<div>Discount (${discPct}%)<span style="color:var(--red)">-${money2(disc)}</span></div>`:''}<div>Tax (${cfg.taxRate}%)<span>${money2(tax)}</span></div><div>Shipping<span>${ship?money2(ship):'Free'}</span></div><div class="tt">Total<span>${money2(taxable+tax+ship)}</span></div>`;
   $$('#of-items [data-di]').forEach(el=>el.onchange=()=>{const i=+el.dataset.di,f=el.dataset.f;draft.items[i][f]=f==='qty'?Math.max(1,Math.min(999,+el.value||1)):el.value;renderDraft();});
   $$('#of-items [data-del]').forEach(b=>b.onclick=()=>{draft.items.splice(+b.dataset.del,1);if(!draft.items.length)draft.items.push({productId:'',qty:1});renderDraft();});
 }
@@ -955,35 +1021,44 @@ function saveOrder(){
   const customerId=$('#of-cust').value,date=$('#of-date').value,status=$('#of-status').value;
   const items=draft.items.filter(it=>it.productId&&it.qty>0).map(it=>{const p=db.products.find(x=>x.id===it.productId);return {productId:p.id,name:p.name,qty:it.qty,price:p.price};});
   if(!items.length){toast('Add at least one line item','fa-triangle-exclamation','warn');return;}
-  const sub=items.reduce((s,i)=>s+i.qty*i.price,0),tax=sub*.08,ship=sub>1000?0:25,total=sub+tax+ship;
+  const cfg=db.config||{taxRate:8,shippingFee:25,freeShipOver:1000};
+  const sub=items.reduce((s,i)=>s+i.qty*i.price,0);
+  const discPct=Math.max(0,Math.min(100,+($('#of-disc').value)||0));
+  const disc=sub*discPct/100,taxable=sub-disc;
+  const tax=taxable*cfg.taxRate/100,ship=sub>cfg.freeShipOver||sub===0?0:cfg.shippingFee,total=taxable+tax+ship;
   const cust=db.customers.find(c=>c.id===customerId);
   if(draft.mode==='quote'){
-    const payload={customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString()};
+    const payload={customerId,customerName:cust.company,items,sub,tax,ship,total,discPct,status,date:new Date(date+'T12:00:00').toISOString()};
     if(draft.editingId){
       const q=db.quotes.find(x=>x.id===draft.editingId);
       if(q.status==='Converted'){toast('Converted quotes cannot be edited','fa-lock','warn');return;}
       Object.assign(q,payload);
+      audit('fa-pen-to-square','Quote updated','Quotes',q.id,`${money2(total)} · ${cust.company}`);
       toast('Quote '+q.id+' updated');
     }else{
       const id='QT-'+(db.seq.quote++);
       db.quotes.unshift({id,...payload});
       addActivity('fa-file-lines',`Quote ${id} created for ${cust.company} — ${money(total)}`);
+      audit('fa-file-lines','Quote created','Quotes',id,`${money2(total)} · ${cust.company}`);
       toast('Quote '+id+' created');
     }
     save();closeModal();ordersTab='quotes';navigate('orders');return;
   }
   if(draft.editingId){
     const old=db.orders.find(o=>o.id===draft.editingId);
-    if(old.status!=='Cancelled')applyStock(old,1,'Order Edit',old.id);
-    Object.assign(old,{customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString()});
+    const prev=old.status;
+    if(prev!=='Cancelled')applyStock(old,1,'Order Edit',old.id);
+    Object.assign(old,{customerId,customerName:cust.company,items,sub,tax,ship,total,discPct,status,date:new Date(date+'T12:00:00').toISOString()});
     if(status!=='Cancelled')applyStock(old,-1,'Sale',old.id);
+    audit('fa-pen-to-square','Order updated','Orders',old.id,`${prev} → ${status} · ${money2(total)}`);
     toast('Order '+old.id+' updated');
   }else{
     const id='ORD-'+(db.seq.order++);
-    const o={id,customerId,customerName:cust.company,items,sub,tax,ship,total,status,date:new Date(date+'T12:00:00').toISOString(),payments:[]};
+    const o={id,customerId,customerName:cust.company,items,sub,tax,ship,total,discPct,status,date:new Date(date+'T12:00:00').toISOString(),payments:[],returns:[]};
     db.orders.unshift(o);
     if(status!=='Cancelled')applyStock(o,-1,'Sale',o.id);
     addActivity('fa-cart-shopping',`New order ${id} from ${cust.company} — ${money(total)}`);
+    audit('fa-cart-shopping','Order created','Orders',id,`${money2(total)} · ${cust.company}`);
     pushNotif('fa-cart-shopping','New order received',`${id} · ${cust.company} · ${money(total)}`);
     toast('Order '+id+' created');
   }
@@ -991,30 +1066,67 @@ function saveOrder(){
 }
 function openOrderView(id){
   const o=db.orders.find(x=>x.id===id);if(!o)return;
-  const paid=orderPaid(o),bal=Math.max(0,o.total-paid);
+  const paid=orderPaid(o),refunded=orderRefunded(o),net=orderNet(o),bal=Math.max(0,net-paid);
   const inv=db.invoices.find(i=>i.orderId===o.id);
   const payRows=(o.payments||[]).slice().reverse().map(p=>`<div class="act-item"><span class="act-ico" style="background:rgba(16,185,129,.12);color:var(--green)"><i class="fa-solid fa-money-bill"></i></span><div><p><b>${money2(p.amount)}</b> · ${esc(p.method)}</p><time>${fmtDate(p.date)}</time></div></div>`).join('')||'<div class="empty" style="padding:14px"><i class="fa-regular fa-hourglass-half"></i>No payments recorded yet</div>';
+  const retRows=(o.returns||[]).slice().reverse().map(r=>`<div class="act-item"><span class="act-ico" style="background:rgba(244,63,94,.12);color:var(--red)"><i class="fa-solid fa-rotate-left"></i></span><div><p><b>${money2(r.amount)}</b> · ${r.items.map(i=>i.qty+' × '+i.name).join(', ')}</p><time>${esc(r.reason)} · ${fmtDate(r.date)}</time></div></div>`).join('')||'';
   openModal(`<div class="modal-head"><div><h3>${o.id}</h3><p>Placed ${fmtDT(o.date)}${inv?' · <a href="#" style="color:var(--primary)" id="goInv">'+inv.id+'</a>':''}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
   <div class="modal-body">
     <div class="ov-grid"><div><span>Customer</span><b>${esc(o.customerName)}</b></div><div><span>Status</span>${badge(o.status)}</div><div><span>Items</span><b>${o.items.reduce((s,i)=>s+i.qty,0)}</b></div><div><span>Payment</span>${badge(payStatus(o))}</div></div>
-    <div class="of-totals"><div>Total<span>${money2(o.total)}</span></div><div>Paid<span style="color:var(--green)">${money2(paid)}</span></div><div>Balance${bal>0?' <span class="badge b-red" style="margin-left:4px">Due</span>':''}<span>${money2(bal)}</span></div></div>
+    <div class="of-totals">${o.discPct?`<div>Discount (${o.discPct}%)<span style="color:var(--red)">-${money2(o.sub*o.discPct/100)}</span></div>`:''}<div>Total<span>${money2(o.total)}</span></div>${refunded?`<div>Refunded<span style="color:var(--red)">-${money2(refunded)}</span></div>`:''}<div>Paid<span style="color:var(--green)">${money2(paid)}</span></div><div>Balance${bal>0?' <span class="badge b-red" style="margin-left:4px">Due</span>':''}<span>${money2(bal)}</span></div></div>
     <table class="tbl mini" style="margin-top:8px"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th class="ta-r">Amount</th></tr></thead><tbody>${o.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>${money2(i.price)}</td><td class="ta-r">${money2(i.qty*i.price)}</td></tr>`).join('')}</tbody></table>
     <div class="items-label" style="margin-top:14px"><span>Payments</span></div>
     <div style="border:1px solid var(--border);border-radius:12px;padding:2px 14px">${payRows}</div>
+    ${retRows?`<div class="items-label" style="margin-top:14px"><span>Returns</span></div><div style="border:1px solid rgba(244,63,94,.3);border-radius:12px;padding:2px 14px">${retRows}</div>`:''}
   </div>
-  <div class="modal-foot"><label class="inline-label">Status<select id="ov-status">${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></label>${can('create')&&!inv?`<button class="btn btn-ghost btn-sm" id="ov-inv"><i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice</button>`:''}${bal>0.005&&can('edit')?`<button class="btn btn-ghost btn-sm" id="ov-pay"><i class="fa-solid fa-money-bill"></i> Record Payment</button>`:''}<div class="spacer"></div><button class="btn btn-ghost modal-close">Close</button><button class="btn btn-primary" id="ov-save">Update Status</button></div>`,680);
+  <div class="modal-foot"><label class="inline-label">Status<select id="ov-status">${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${s===o.status?'selected':''}>${s}</option>`).join('')}</select></label>${can('create')&&!inv?`<button class="btn btn-ghost btn-sm" id="ov-inv"><i class="fa-solid fa-file-invoice-dollar"></i> Create Invoice</button>`:''}${bal>0.005&&can('edit')?`<button class="btn btn-ghost btn-sm" id="ov-pay"><i class="fa-solid fa-money-bill"></i> Record Payment</button>`:''}${o.status==='Delivered'&&can('edit')?`<button class="btn btn-ghost btn-sm" id="ov-ret" style="color:var(--red)"><i class="fa-solid fa-rotate-left"></i> Record Return</button>`:''}<div class="spacer"></div><button class="btn btn-ghost modal-close">Close</button><button class="btn btn-primary" id="ov-save">Update Status</button></div>`,680);
   const gi=$('#goInv');if(gi)gi.onclick=e=>{e.preventDefault();closeModal();navigate('finance');};
-  const ip=$('#ov-inv');if(ip)ip.onclick=()=>{const nv=createInvoiceForOrder(o);save();toast('Invoice '+nv.id+' created');closeModal();rerender();};
+  const ip=$('#ov-inv');if(ip)ip.onclick=()=>{const nv=createInvoiceForOrder(o);audit('fa-file-invoice-dollar','Invoice created','Finance',nv.id,'From order '+o.id);save();toast('Invoice '+nv.id+' created');closeModal();rerender();};
   const pp=$('#ov-pay');if(pp)pp.onclick=()=>openPaymentModal(o);
+  const rt=$('#ov-ret');if(rt)rt.onclick=()=>openReturnModal(o);
   $('#ov-save').onclick=()=>{
-    const ns=$('#ov-status').value,had=db.invoices.some(i=>i.orderId===o.id);
+    const ns=$('#ov-status').value,had=db.invoices.some(i=>i.orderId===o.id),prev=o.status;
     changeStatus(o,ns);
-    if(ns==='Delivered'){const nv=createInvoiceForOrder(o);if(nv&&!had){pushNotif('fa-file-invoice-dollar','Invoice generated',`${nv.id} for ${o.id} · ${money(nv.amount)}`);addActivity('fa-file-invoice-dollar',`Invoice ${nv.id} generated from ${o.id}`);}}
+    audit('fa-rotate','Status updated','Orders',o.id,`${prev} → ${ns}`);
+    if(ns==='Delivered'){const nv=createInvoiceForOrder(o);if(nv&&!had){pushNotif('fa-file-invoice-dollar','Invoice generated',`${nv.id} for ${o.id} · ${money(nv.amount)}`);addActivity('fa-file-invoice-dollar',`Invoice ${nv.id} generated from ${o.id}`);audit('fa-file-invoice-dollar','Invoice auto-generated','Finance',nv.id,'From Delivered order '+o.id);}}
     save();toast(o.id+' status updated');closeModal();rerender();
   };
 }
+function openReturnModal(o){
+  openModal(`<div class="modal-head"><div><h3>Record Return — ${o.id}</h3><p>Restore stock and record a refund</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
+  <form id="retForm" class="modal-body">
+    <div class="items-label"><span>Items to return</span></div>
+    <div id="ret-items"></div>
+    <label>Reason<select id="ret-reason"><option>Damaged Item</option><option>Incorrect Item</option><option>Customer Return</option><option>Quality Issue</option><option>Other</option></select></label>
+    <div class="of-totals"><div>Refund Amount<span id="ret-amt">—</span></div></div>
+  </form>
+  <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-danger" id="ret-save"><i class="fa-solid fa-rotate-left"></i> Record Return</button></div>`,520);
+  const wrap=$('#ret-items');
+  wrap.innerHTML=o.items.map((it,idx)=>`<div class="draft-row"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${esc(it.name)}</span><input type="number" min="0" max="${it.qty}" value="0" data-retq="${idx}" style="width:80px"><span class="draft-line">${money2(it.price)} ea</span></div>`).join('')||'<div class="empty">No line items</div>';
+  const calc=()=>{let amt=0;$$('#ret-items [data-retq]').forEach(el=>{const idx=+el.dataset.retq;amt+=Math.max(0,+el.value||0)*o.items[idx].price;});$('#ret-amt').textContent=money2(amt);return amt;};
+  $$('#ret-items [data-retq]').forEach(el=>el.oninput=calc);
+  calc();
+  $('#retForm').onsubmit=e=>{e.preventDefault();$('#ret-save').click();};
+  $('#ret-save').onclick=()=>{
+    const lines=[];
+    $$('#ret-items [data-retq]').forEach(el=>{const idx=+el.dataset.retq,qty=Math.max(0,+el.value||0);if(qty>0)lines.push({productId:o.items[idx].productId,name:o.items[idx].name,qty:Math.min(qty,o.items[idx].qty),price:o.items[idx].price});});
+    if(!lines.length){toast('Select at least one item to return','fa-triangle-exclamation','warn');return;}
+    recordReturn(o,lines,$('#ret-reason').value);
+    save();toast('Return recorded — stock restored','fa-rotate-left');closeModal();openOrderView(o.id);
+  };
+}
+function recordReturn(o,lines,reason){
+  const amount=lines.reduce((s,l)=>s+l.qty*l.price,0);
+  lines.forEach(l=>{const p=db.products.find(x=>x.id===l.productId);if(p)p.stock+=l.qty;logMovement(l.productId,l.qty,'Return',o.id);});
+  o.returns=o.returns||[];
+  o.returns.push({id:'r'+Date.now(),date:new Date().toISOString(),items:lines.map(l=>({name:l.name,qty:l.qty,price:l.price})),reason,amount});
+  audit('fa-rotate-left','Return recorded','Orders',o.id,`${money2(amount)} refunded · ${lines.reduce((s,l)=>s+l.qty,0)} unit(s)`);
+  addActivity('fa-rotate-left',`Return recorded for ${o.id} — ${money2(amount)} refunded`);
+  pushNotif('fa-rotate-left','Return recorded',`${money2(amount)} refunded for ${o.id}`);
+  return amount;
+}
 function openPaymentModal(o){
-  const bal=Math.max(0,o.total-orderPaid(o));
+  const bal=Math.max(0,orderNet(o)-orderPaid(o));
   openModal(`<div class="modal-head"><div><h3>Record Payment — ${o.id}</h3><p>Outstanding balance ${money2(bal)}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
   <form id="payForm" class="modal-body">
     <label>Amount ($)<input type="number" min="0.01" step="0.01" id="pay-amt" value="${bal.toFixed(2)}"></label>
@@ -1027,8 +1139,10 @@ function openPaymentModal(o){
     const amt=+$('#pay-amt').value||0;
     if(amt<=0){toast('Enter a valid amount','fa-triangle-exclamation','warn');return;}
     o.payments=o.payments||[];
-    o.payments.push({id:'p'+Date.now(),amount:+Math.min(amt,bal).toFixed(2),method:$('#pay-method').value,date:new Date($('#pay-date').value+'T12:00:00').toISOString()});
-    addActivity('fa-money-bill',`Payment of ${money2(amt)} received for ${o.id}`);
+    const amt2=+Math.min(amt,bal).toFixed(2);
+    o.payments.push({id:'p'+Date.now(),amount:amt2,method:$('#pay-method').value,date:new Date($('#pay-date').value+'T12:00:00').toISOString()});
+    audit('fa-money-bill','Payment recorded','Orders',o.id,`${money2(amt2)} via ${$('#pay-method').value}`);
+    addActivity('fa-money-bill',`Payment of ${money2(amt2)} received for ${o.id}`);
     pushNotif('fa-money-bill','Payment received',`${money2(amt)} for ${o.id} · ${o.customerName}`);
     const inv=db.invoices.find(i=>i.orderId===o.id);
     if(inv&&orderPaid(o)>=o.total-0.005){inv.status='Paid';inv.paidOn=new Date().toISOString();}
@@ -1046,7 +1160,7 @@ function openQuoteView(id){
   </div>
   <div class="modal-foot">${!converted?`<label class="inline-label">Status<select id="qv-status">${['Draft','Sent','Approved'].map(s=>`<option ${s===q.status?'selected':''}>${s}</option>`).join('')}</select></label>`:''}<div class="spacer"></div>${!converted&&can('create')?`<button class="btn btn-primary" id="qv-conv"><i class="fa-solid fa-arrow-right"></i> Convert to Order</button>`:''}<button class="btn btn-ghost modal-close">Close</button></div>`,620);
   const vs=$('#qv-status');
-  if(vs){vs.addEventListener('change',()=>{q.status=vs.value;save();toast('Quote status updated');});}
+  if(vs){vs.addEventListener('change',()=>{q.status=vs.value;audit('fa-rotate','Quote status updated','Quotes',q.id,q.status);save();toast('Quote status updated');});}
   const cv=$('#qv-conv');
   if(cv)cv.onclick=()=>{convertQuote(q.id);save();closeModal();rerender();};
 }
@@ -1066,7 +1180,7 @@ function openProductModal(p){
   $('#pp-save').onclick=()=>{
     const data={name:$('#pp-name').value.trim(),sku:$('#pp-sku').value.trim()==='AUTO'?'SKU-'+ri(1000,9999):$('#pp-sku').value.trim(),category:$('#pp-cat').value,supplier:$('#pp-sup').value,price:+$('#pp-price').value,cost:+$('#pp-cost').value,stock:Math.max(0,+$('#pp-stock').value),reorder:Math.max(0,+$('#pp-re').value)};
     if(!data.name||isNaN(data.price))return;
-    if(editing){const diff=data.stock-p.stock;Object.assign(p,data);if(diff)logMovement(p.id,diff,'Adjustment','Product Edit');}else{db.products.push({id:'PRD-'+(db.seq.product++),...data});addActivity('fa-box','New product added: '+data.name);}
+    if(editing){const diff=data.stock-p.stock;Object.assign(p,data);if(diff)logMovement(p.id,diff,'Adjustment','Product Edit');audit('fa-pen-to-square','Product updated','Inventory',data.name);}else{db.products.push({id:'PRD-'+(db.seq.product++),...data});addActivity('fa-box','New product added: '+data.name);audit('fa-box','Product created','Inventory',data.name,`${money2(data.price)} · ${data.category}`);}
     save();closeModal();toast(editing?'Product updated':'Product added');rerender();
   };
 }
@@ -1083,7 +1197,7 @@ function openCustomerModal(x){
   $('#cc-save').onclick=()=>{
     const data={company:$('#cc-co').value.trim(),name:$('#cc-name').value.trim(),email:$('#cc-email').value.trim(),phone:$('#cc-phone').value.trim()||'—',country:$('#cc-country').value,tier:$('#cc-tier').value};
     if(!data.company||!data.name)return;
-    if(editing)Object.assign(x,data);else{db.customers.push({id:'CUS-'+(db.seq.cust++),since:new Date().toISOString(),...data});addActivity('fa-user-plus','New customer '+data.company+' added');}
+    if(editing){Object.assign(x,data);audit('fa-pen-to-square','Customer updated','Customers',data.company);}else{db.customers.push({id:'CUS-'+(db.seq.cust++),since:new Date().toISOString(),...data});addActivity('fa-user-plus','New customer '+data.company+' added');audit('fa-user-plus','Customer created','Customers',data.company,data.tier);}
     save();closeModal();toast(editing?'Customer updated':'Customer added');rerender();
   };
 }
@@ -1101,7 +1215,7 @@ function openEmployeeModal(e){
   $('#ee-save').onclick=()=>{
     const data={name:$('#ee-name').value.trim(),role:$('#ee-role').value.trim(),dept:$('#ee-dept').value,status:$('#ee-status').value,salary:+$('#ee-salary').value,hired:new Date($('#ee-hired').value+'T12:00:00').toISOString(),email:($('#ee-name').value.trim().toLowerCase().replace(/[^a-z]+/g,'.')||'staff')+'@nexuserp.io'};
     if(!data.name||!data.role||isNaN(data.salary))return;
-    if(editing)Object.assign(e,data);else db.employees.push({id:'EMP-'+(db.seq.emp++),...data});
+    if(editing){Object.assign(e,data);audit('fa-pen-to-square','Employee updated','HR',data.name);}else{db.employees.push({id:'EMP-'+(db.seq.emp++),...data});audit('fa-user-plus','Employee created','HR',data.name,data.dept);}
     save();closeModal();toast(editing?'Employee updated':'Employee added');rerender();
   };
 }
@@ -1118,7 +1232,7 @@ function openSupplierModal(s){
   $('#ss-save').onclick=()=>{
     const data={name:$('#ss-name').value.trim(),contact:$('#ss-contact').value.trim(),email:$('#ss-email').value.trim(),country:$('#ss-country').value,rating:Math.max(1,Math.min(5,+$('#ss-rating').value))};
     if(!data.name)return;
-    if(editing)Object.assign(s,data);else db.suppliers.push({id:'SUP-'+(db.seq.sup++),...data});
+    if(editing){Object.assign(s,data);audit('fa-pen-to-square','Supplier updated','Procurement',data.name);}else{db.suppliers.push({id:'SUP-'+(db.seq.sup++),...data});audit('fa-building','Supplier created','Procurement',data.name);}
     save();closeModal();toast(editing?'Supplier updated':'Supplier added');rerender();
   };
 }
@@ -1137,8 +1251,10 @@ function openPoModal(){
   $('#po-save').onclick=()=>{
     const sup=db.suppliers.find(s=>s.id===$('#po-sup').value),p=db.products.find(x=>x.id===$('#po-prod').value);
     const qty=Math.max(1,+$('#po-qty').value||1),cost=+$('#po-cost').value||p.cost;
-    db.pos.unshift({id:'PO-'+(db.seq.po++),supplierId:sup.id,supplierName:sup.name,productId:p.id,productName:p.name,qty,cost,status:'Pending',eta:new Date($('#po-eta').value+'T12:00:00').toISOString(),created:new Date().toISOString()});
+    const poId='PO-'+(db.seq.po++);
+    db.pos.unshift({id:poId,supplierId:sup.id,supplierName:sup.name,productId:p.id,productName:p.name,qty,cost,status:'Pending',eta:new Date($('#po-eta').value+'T12:00:00').toISOString(),created:new Date().toISOString()});
     addActivity('fa-file-lines','Purchase order created for '+qty+' × '+p.name);
+    audit('fa-file-lines','PO created','Procurement',poId,`${qty} × ${p.name} from ${sup.name}`);
     save();closeModal();toast('Purchase order created');rerender();
   };
 }
@@ -1154,6 +1270,7 @@ function openInvoiceModal(){
     const c=db.customers.find(x=>x.id===$('#ii-cust').value);const amt=+$('#ii-amt').value;
     if(!amt||amt<=0){toast('Enter a valid amount','fa-triangle-exclamation','warn');return;}
     db.invoices.unshift({id:'INV-'+(db.seq.inv++),customerId:c.id,customerName:c.company,amount:Math.round(amt),issued:new Date().toISOString(),due:new Date($('#ii-due').value+'T12:00:00').toISOString(),status:'Pending',paidOn:null});
+    audit('fa-file-invoice-dollar','Invoice issued','Finance','INV-'+(db.seq.inv),`${money2(amt)} · ${c.company}`);
     save();closeModal();toast('Invoice issued');rerender();
   };
 }
@@ -1168,6 +1285,7 @@ const VIEWS={
   procurement:{title:'Procurement',sub:'Purchase orders and suppliers',render:viewProcurement,mount:mountProcurement},
   finance:{title:'Finance',sub:'Revenue, expenses and receivables',render:viewFinance,mount:mountFinance},
   reports:{title:'Reports',sub:'Analytics and data exports',render:viewReports,mount:mountReports},
+  audit:{title:'Audit Log',sub:'Searchable trail of every system action',render:viewAudit,mount:mountAudit},
   settings:{title:'Settings',sub:'Profile, preferences and data',render:viewSettings,mount:mountSettings}
 };
 function navigate(v){
