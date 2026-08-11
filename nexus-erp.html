@@ -334,6 +334,7 @@ body.collapsed .brand{justify-content:center;padding-left:0;padding-right:0}
     <a class="nav-item" data-view="hr" title="Human Resources"><i class="fa-solid fa-user-tie"></i><span class="nav-label">Human Resources</span></a>
     <div class="nav-sec">Finance</div>
     <a class="nav-item" data-view="finance" title="Finance"><i class="fa-solid fa-wallet"></i><span class="nav-label">Finance</span></a>
+    <a class="nav-item" data-view="assets" title="Fixed Assets"><i class="fa-solid fa-building-columns"></i><span class="nav-label">Assets</span></a>
     <a class="nav-item" data-view="reports" title="Reports"><i class="fa-solid fa-chart-line"></i><span class="nav-label">Reports</span></a>
     <div class="nav-sec">System</div>
     <a class="nav-item" data-view="audit" title="Audit Log"><i class="fa-solid fa-shield-halved"></i><span class="nav-label">Audit Log</span></a>
@@ -394,7 +395,7 @@ const hoursAgoISO=h=>new Date(Date.now()-h*36e5).toISOString();
 const gridC=()=>getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim();
 function timeAgo(iso){const s=(Date.now()-new Date(iso))/1e3;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';if(s<604800)return Math.floor(s/86400)+'d ago';return fmtDate(iso);}
 function avatar(name,size=32){const h=[...name].reduce((a,c)=>a+c.charCodeAt(0),0)%360;const ini=name.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return `<span class="avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.36)}px;background:hsl(${h} 70% 45% / .16);color:hsl(${h} 72% 45%)">${esc(ini)}</span>`;}
-const STYLE={'Pending':'b-amber','Processing':'b-blue','Shipped':'b-violet','Delivered':'b-green','Cancelled':'b-red','Paid':'b-green','Partially Paid':'b-amber','Unpaid':'b-gray','Overdue':'b-red','Active':'b-green','On Leave':'b-amber','Approved':'b-blue','In Transit':'b-violet','Received':'b-green','Out of Stock':'b-red','Low Stock':'b-amber','In Stock':'b-green','VIP':'b-gold','Standard':'b-gray','New':'b-blue','Draft':'b-gray','Sent':'b-blue','Converted':'b-violet','Sales':'b-violet','Return':'b-red','Order Edit':'b-blue','Order Deleted':'b-red','Engineering':'b-blue','Finance':'b-green','Human Resources':'b-gold','Support':'b-pink','Marketing':'b-pink','Operations':'b-gray'};
+const STYLE={'Pending':'b-amber','Processing':'b-blue','Shipped':'b-violet','Delivered':'b-green','Cancelled':'b-red','Paid':'b-green','Partially Paid':'b-amber','Unpaid':'b-gray','Overdue':'b-red','Active':'b-green','On Leave':'b-amber','Approved':'b-blue','In Transit':'b-violet','Received':'b-green','Out of Stock':'b-red','Low Stock':'b-amber','In Stock':'b-green','VIP':'b-gold','Standard':'b-gray','New':'b-blue','Draft':'b-gray','Sent':'b-blue','Converted':'b-violet','In Service':'b-green','Disposed':'b-red','Sales':'b-violet','Return':'b-red','Order Edit':'b-blue','Order Deleted':'b-red','Engineering':'b-blue','Finance':'b-green','Human Resources':'b-gold','Support':'b-pink','Marketing':'b-pink','Operations':'b-gray'};
 const badge=t=>`<span class="badge ${STYLE[t]||'b-gray'}">${esc(t)}</span>`;
 const FLAGS={'United States':'🇺🇸','United Kingdom':'🇬🇧','Mexico':'🇲🇽','Singapore':'🇸🇬','Germany':'🇩🇪','Canada':'🇨🇦','Australia':'🇦🇺','South Korea':'🇰🇷','United Arab Emirates':'🇦🇪','Sweden':'🇸🇪','China':'🇨🇳'};
 function pct(cur,prev){return prev>0?((cur-prev)/prev*100):null;}
@@ -411,7 +412,7 @@ function seed(){
   const pre={Electronics:'EL',Accessories:'AC',Furniture:'FU',Office:'OF'};
   const products=P.map((d,i)=>({id:'PRD-'+(1001+i),sku:pre[d[1]]+'-'+(1001+i),name:d[0],category:d[1],price:d[2],cost:d[3],stock:d[4],reorder:d[5],supplier:d[6]}));
   const C=[['Acme Corporation','Sarah Mitchell','United States','VIP',430],['Globex Industries','James Carter','United Kingdom','VIP',380],['Initech Solutions','Maria Gonzalez','Mexico','Standard',300],['Umbrella Retail Group','Chen Wei','Singapore','Standard',260],['Stark Trading GmbH','Emma Wilson','Germany','VIP',230],['Wayne Enterprises','Liam Brown','Canada','Standard',190],['Cyberdyne Systems','Olivia Davis','Australia','New',90],['Hooli Labs','Noah Martinez','United States','Standard',150],['Vandelay Imports','Sophia Lee','South Korea','New',45],['Pinnacle Group','Ethan Taylor','United Arab Emirates','New',12]];
-  const customers=C.map((d,i)=>({id:'CUS-'+(501+i),company:d[0],name:d[1],email:d[1].toLowerCase().replace(/[^a-z]+/g,'.')+'@'+d[0].toLowerCase().replace(/[^a-z]+/g,'')+'.com',phone:'+1 ('+ri(200,989)+') '+ri(200,989)+'-'+ri(1000,9999),country:d[2],tier:d[3],since:daysAgoISO(d[4])}));
+  const customers=C.map((d,i)=>{const terms=['Net 30','Net 15','Net 60','Due on Receipt','Net 45'][i%5];return {id:'CUS-'+(501+i),company:d[0],name:d[1],email:d[1].toLowerCase().replace(/[^a-z]+/g,'.')+'@'+d[0].toLowerCase().replace(/[^a-z]+/g,'')+'.com',phone:'+1 ('+ri(200,989)+') '+ri(200,989)+'-'+ri(1000,9999),country:d[2],tier:d[3],since:daysAgoISO(d[4]),terms,creditLimit:d[3]==='VIP'?100000:(d[3]==='Standard'?50000:25000),hold:false};});
   const E=[['Daniel Reyes','Sales Director','Sales',92000,'Active',700],['Priya Sharma','Lead Engineer','Engineering',118000,'Active',540],['Tom Becker','Senior Accountant','Finance',68000,'Active',820],['Lucia Fernandez','HR Manager','Human Resources',74000,'On Leave',610],["Kevin O'Neill",'Support Lead','Support',56000,'Active',450],['Aisha Bello','Marketing Specialist','Marketing',61000,'Active',300],['Marcus Chen','DevOps Engineer','Engineering',105000,'Active',260],['Elena Petrova','Sales Executive','Sales',52000,'Active',180],['Ryan Foster','Warehouse Supervisor','Operations',48000,'Active',390],['Maya Kaplan','Product Manager','Engineering',99000,'Active',150]];
   const employees=E.map((d,i)=>({id:'EMP-'+(201+i),name:d[0],role:d[1],dept:d[2],email:d[0].toLowerCase().replace(/[^a-z]+/g,'.')+'@nexuserp.io',salary:d[3],status:d[4],hired:daysAgoISO(d[5])}));
   const S=[['TechSource Ltd','David Kim','South Korea',4.6],['Shenzhen Nova','Lin Zhang','China',4.2],['EuroSupply GmbH','Anna Weber','Germany',4.8],['Pacific Trade Co','Ryan Tan','Singapore',4.0],['Nordic Parts AB','Freja Larsen','Sweden',4.4],['Atlas Components','Omar Haddad','United Arab Emirates',3.9]];
@@ -449,7 +450,7 @@ function seed(){
   }
   const invoices=[];
   const src=orders.filter(o=>o.status!=='Cancelled').slice(0,10);
-  src.forEach((o,i)=>{const issued=new Date(o.date);const due=new Date(issued.getTime()+30*864e5);const paid=Math.random()<.62;
+  src.forEach((o,i)=>{const issued=new Date(o.date);const cust=customers.find(c=>c.id===o.customerId);const due=new Date(issued.getTime()+termsDays(cust?cust.terms:'Net 30')*864e5);const paid=Math.random()<.62;
     invoices.push({id:'INV-'+(2401+i),orderId:o.id,customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:issued.toISOString(),due:due.toISOString(),status:paid?'Paid':(due<new Date()?'Overdue':'Pending'),paidOn:paid?new Date(issued.getTime()+ri(3,25)*864e5).toISOString():null});o.invoiceId='INV-'+(2401+i);
     if(paid&&!o.payments.length)o.payments.push({id:'ip'+i,amount:o.total,method:'Bank Transfer',date:issued.toISOString()});});
   const PD=[[0,2,40,'Approved',8],[1,7,60,'In Transit',4],[2,9,15,'Pending',18],[3,4,120,'Received',-6],[4,11,200,'Pending',25],[5,13,80,'Approved',12]];
@@ -465,14 +466,17 @@ function seed(){
   const movements=[];
   const mv=[['PRD-1014',40,'PO Received','PO-9003'],['PRD-1006',-12,'Sale','ORD-1028'],['PRD-1003',-5,'Sale','ORD-1031'],['PRD-1001',60,'PO Received','PO-9001'],['PRD-1008',-3,'Manual Adjustment','']];
   mv.forEach((m,i)=>movements.push({id:'ms'+i,productId:m[0],productName:(products.find(p=>p.id===m[0])||{}).name||'Unknown',delta:m[1],reason:m[2],ref:m[3],by:'Alex Morgan',time:hoursAgoISO((i+1)*7)}));
+  products.forEach((p,i)=>movements.push({id:'op'+i,productId:p.id,productName:p.name,delta:p.stock,reason:'Opening Stock',ref:'',by:'System',time:daysAgoISO(ri(60,330))}));
+  movements.sort((a,b)=>new Date(b.time)-new Date(a.time));
   const audit=[];
   const au=[['fa-right-to-bracket','Signed in','Auth','admin@nexuserp.io'],['fa-cart-shopping','New order','Orders',orders[0].id+' · '+orders[0].customerName],['fa-file-invoice-dollar','Invoice paid','Finance','INV-2401'],['fa-box','Stock received','Inventory','120 × Glide Wireless Mouse'],['fa-file-lines','Quote created','Quotes','QT-2402'],['fa-gear','Settings updated','Settings','Tax rate set to 8%']];
   au.forEach((a,i)=>audit.push({id:'sd'+i,time:hoursAgoISO(2+i*9),user:'Alex Morgan',role:'Administrator',icon:a[0],action:a[1],module:a[2],target:a[3],detail:''}));
-  return {version:2,profile:{name:'Alex Morgan',email:'alex.morgan@nexuserp.io',role:'Administrator'},config:{taxRate:8,shippingFee:25,freeShipOver:1000},prefs:{emailNotif:true,digest:false,lowStock:true},ui:{collapsed:false},theme:'light',seq:{order:1065,product:1015,cust:511,emp:211,sup:307,po:9007,inv:2411,quote:2407},products,customers,employees,suppliers,orders,invoices,quotes,pos,notifications,activities,movements,audit};
+  const assets=[{id:'AST-001',name:'Dell PowerEdge Server',category:'IT Equipment',purchaseDate:daysAgoISO(760),cost:12500,salvage:1200,usefulLifeYears:5,status:'In Service',disposedOn:null},{id:'AST-002',name:'Ford Transit Delivery Van',category:'Vehicles',purchaseDate:daysAgoISO(620),cost:28500,salvage:5000,usefulLifeYears:6,status:'In Service',disposedOn:null},{id:'AST-003',name:'MacBook Pro 16" (Marketing)',category:'IT Equipment',purchaseDate:daysAgoISO(180),cost:3200,salvage:400,usefulLifeYears:4,status:'In Service',disposedOn:null},{id:'AST-004',name:'Office Furniture — HQ Floor 2',category:'Furniture',purchaseDate:daysAgoISO(1100),cost:9600,salvage:900,usefulLifeYears:8,status:'In Service',disposedOn:null}];
+  return {version:2,profile:{name:'Alex Morgan',email:'alex.morgan@nexuserp.io',role:'Administrator'},config:{taxRate:8,shippingFee:25,freeShipOver:1000},prefs:{emailNotif:true,digest:false,lowStock:true},ui:{collapsed:false},theme:'light',seq:{order:1065,product:1015,cust:511,emp:211,sup:307,po:9007,inv:2411,quote:2407,asset:5},products,customers,employees,suppliers,orders,invoices,quotes,pos,notifications,activities,movements,audit,assets};
 }
 let db;
 function save(){localStorage.setItem(LS_KEY,JSON.stringify(db));}
-function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.orders)&&(d.version===1||d.version===2)){if(!d.quotes)d.quotes=[];if(!d.movements)d.movements=[];if(!d.seq)d.seq={};if(!d.seq.quote)d.seq.quote=2407;if(!d.audit)d.audit=[];if(!d.config)d.config={taxRate:8,shippingFee:25,freeShipOver:1000};if(!Array.isArray(d.orders[0].payments))d.orders.forEach(o=>o.payments=o.payments||[]);d.orders.forEach(o=>{if(!Array.isArray(o.returns))o.returns=[];if(o.discPct==null)o.discPct=0;});if(!Array.isArray(d.quotes[0]&&d.quotes[0].returns))d.quotes.forEach(q=>{if(q.discPct==null)q.discPct=0;});d.version=2;save();db=d;return;}}}catch(e){}db=seed();save();}
+function load(){try{const raw=localStorage.getItem(LS_KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.orders)&&(d.version===1||d.version===2)){if(!d.quotes)d.quotes=[];if(!d.movements)d.movements=[];if(!d.seq)d.seq={};if(!d.seq.quote)d.seq.quote=2407;if(!d.seq.asset)d.seq.asset=1;if(!d.audit)d.audit=[];if(!d.config)d.config={taxRate:8,shippingFee:25,freeShipOver:1000};if(!Array.isArray(d.orders[0].payments))d.orders.forEach(o=>o.payments=o.payments||[]);d.orders.forEach(o=>{if(!Array.isArray(o.returns))o.returns=[];if(o.discPct==null)o.discPct=0;});if(!Array.isArray(d.quotes[0]&&d.quotes[0].returns))d.quotes.forEach(q=>{if(q.discPct==null)q.discPct=0;});(d.customers||[]).forEach(c=>{if(c.terms==null)c.terms='Net 30';if(c.creditLimit==null)c.creditLimit=(c.tier==='VIP'?100000:(c.tier==='Standard'?50000:25000));if(c.hold==null)c.hold=false;});if(!d.assets||!Array.isArray(d.assets))d.assets=[];d.assets.forEach(a=>{if(a.salvage==null)a.salvage=0;if(a.usefulLifeYears==null)a.usefulLifeYears=5;if(a.status==null)a.status='In Service';if(a.disposedOn==null)a.disposedOn=null;});d.version=2;save();db=d;return;}}}catch(e){}db=seed();save();}
 
 /* ================= STATE ================= */
 let currentView='';
@@ -488,6 +492,7 @@ const ctl={
   movements:{q:'',page:1,per:10},
   customers:{q:'',tier:'all',page:1,per:8},
   hr:{q:'',dept:'all',page:1,per:8},
+  assets:{q:'',cat:'all',page:1,per:10},
   audit:{q:'',module:'all',user:'all',page:1,per:12}
 };
 const rerender=()=>navigate(currentView);
@@ -536,9 +541,9 @@ const ROLE_DESC={
 };
 const ROLE_MODULES={
   Viewer:['dashboard','orders','inventory','customers','procurement','reports'],
-  Analyst:['dashboard','orders','inventory','customers','procurement','finance','reports','settings'],
-  Manager:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings','audit'],
-  Administrator:['dashboard','orders','inventory','customers','procurement','finance','hr','reports','settings','audit']
+  Analyst:['dashboard','orders','inventory','customers','procurement','finance','assets','reports','settings'],
+  Manager:['dashboard','orders','inventory','customers','procurement','finance','assets','hr','reports','settings','audit'],
+  Administrator:['dashboard','orders','inventory','customers','procurement','finance','assets','hr','reports','settings','audit']
 };
 function can(p){return (ROLE_RANK[db.profile.role]||1)>=(p==='view'?1:p==='export'?2:p==='create'?3:p==='edit'?3:4);}
 function guard(p,msg){if(!can(p)){toast(msg||'Insufficient permissions for this action','fa-lock','warn');return false;}return true;}
@@ -591,15 +596,67 @@ function orderPaid(o){return (o.payments||[]).reduce((s,p)=>s+p.amount,0);}
 function orderRefunded(o){return (o.returns||[]).reduce((s,r)=>s+r.amount,0);}
 function orderNet(o){return Math.max(0,o.total-orderRefunded(o));}
 function payStatus(o){if(o.status==='Cancelled')return'Cancelled';const net=orderNet(o),paid=orderPaid(o);if(paid>=net-0.005)return'Paid';if(paid>0)return'Partially Paid';return'Unpaid';}
+
+/* ================= PAYMENT TERMS / CREDIT ================= */
+const TERMS_DAYS={'Due on Receipt':0,'Net 15':15,'Net 30':30,'Net 45':45,'Net 60':60};
+const termsDays=t=>TERMS_DAYS[t]!==undefined?TERMS_DAYS[t]:30;
+function dueFromIssued(issued,terms){return new Date(new Date(issued).getTime()+termsDays(terms)*864e5).toISOString();}
+function customerOutstanding(c){
+  const inv=(db.invoices||[]).filter(i=>i.customerId===c.id&&i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
+  const ord=(db.orders||[]).filter(o=>o.customerId===c.id&&o.status!=='Cancelled').reduce((s,o)=>s+Math.max(0,orderNet(o)-orderPaid(o)),0);
+  return inv+ord;
+}
+function creditState(c){
+  const limit=+(c.creditLimit)||0;
+  const used=Math.round(customerOutstanding(c));
+  return {limit,used,remain:limit>0?Math.max(0,limit-used):null,over:limit>0&&used>limit};
+}
+function creditBlock(c,extra=0,base){
+  const st=creditState(c);
+  const used=base!=null?base:st.used;
+  if(c.hold)return `Account on hold — ${c.company}`;
+  if(st.limit>0&&(used+extra)>st.limit)return `Credit limit exceeded for ${c.company} — ${money(used+extra)} of ${money(st.limit)} used`;
+  return null;
+}
+
+/* ================= WEIGHTED-AVERAGE COSTING / STOCK AGE ================= */
+function restock(p,qty,cost){
+  if(!p||qty<=0)return;
+  const c=cost!=null&&!isNaN(cost)?+cost:p.cost;
+  p.cost=+((p.stock*p.cost+qty*c)/(p.stock+qty)).toFixed(2);
+  p.stock+=qty;
+}
+function lastMovementTime(pid){
+  const mv=db.movements.find(m=>m.productId===pid);
+  return mv?new Date(mv.time).getTime():null;
+}
+function stockAgeDays(p){
+  const t=lastMovementTime(p.id);
+  if(!t)return null;
+  return Math.max(0,Math.floor((Date.now()-t)/864e5));
+}
+
+/* ================= FIXED ASSETS / DEPRECIATION ================= */
+function assetMonthlyDep(a){const life=Math.max(1,a.usefulLifeYears||0)*12;return Math.max(0,(a.cost-a.salvage)/life);}
+function assetAccumDep(a){
+  const months=Math.max(0,Math.floor((Date.now()-new Date(a.purchaseDate).getTime())/864e5/30.44));
+  const cap=Math.max(0,a.cost-a.salvage);
+  return Math.min(cap,assetMonthlyDep(a)*months);
+}
+function assetNbv(a){return Math.max(0,a.cost-assetAccumDep(a));}
+
 function createInvoiceForOrder(o){
   const ex=db.invoices.find(i=>i.orderId===o.id);if(ex)return ex;
-  const inv={id:'INV-'+(db.seq.inv++),orderId:o.id,customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:new Date().toISOString(),due:new Date(Date.now()+30*864e5).toISOString(),status:'Pending',paidOn:null};
+  const cust=db.customers.find(c=>c.id===o.customerId);
+  const inv={id:'INV-'+(db.seq.inv++),orderId:o.id,customerId:o.customerId,customerName:o.customerName,amount:Math.round(o.total),issued:new Date().toISOString(),due:dueFromIssued(new Date().toISOString(),cust?cust.terms:'Net 30'),status:'Pending',paidOn:null};
   db.invoices.unshift(inv);o.invoiceId=inv.id;
-  audit('fa-file-invoice-dollar','Invoice generated','Finance',inv.id,'From order '+o.id+' · '+money2(inv.amount));
+  audit('fa-file-invoice-dollar','Invoice generated','Finance',inv.id,'From order '+o.id+' · '+money2(inv.amount)+' · '+(cust?cust.terms:'Net 30'));
   return inv;
 }
 function convertQuote(id){
   const q=db.quotes.find(x=>x.id===id);if(!q||q.status==='Converted')return;
+  const cust=db.customers.find(c=>c.id===q.customerId);
+  if(cust){const block=creditBlock(cust,q.total);if(block){toast(block,'fa-ban','error');audit('fa-ban','Conversion blocked','Quotes',q.id,block);return;}}
   const order={id:'ORD-'+(db.seq.order++),customerId:q.customerId,customerName:q.customerName,items:q.items.map(i=>({...i})),sub:q.sub,tax:q.tax,ship:q.ship,total:q.total,status:'Pending',date:new Date().toISOString(),payments:[],quoteId:q.id};
   db.orders.unshift(order);applyStock(order,-1,'Sale',order.id);q.status='Converted';
   addActivity('fa-arrow-right',`Quote ${q.id} converted to ${order.id}`);
@@ -729,11 +786,14 @@ function viewInventory(){
   if(c.q){const q=c.q.toLowerCase();list=list.filter(p=>p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)||p.supplier.toLowerCase().includes(q));}
   const {slice,pages,total}=paginate(list,c);
   const low=db.products.filter(p=>p.stock<=p.reorder);
-  const rows=slice.map(p=>{const st=p.stock===0?'Out of Stock':p.stock<=p.reorder?'Low Stock':'In Stock';
-    return `<tr><td class="mono muted">${p.sku}</td><td><div style="display:flex;align-items:center;gap:10px">${avatar(p.name,28)}<div><b style="font-size:13px">${esc(p.name)}</b><div class="muted small">${esc(p.supplier)}</div></div></div></td><td><span class="badge b-gray">${p.category}</span></td><td class="strong">${money2(p.price)}</td><td><div class="stepper">${can('edit')?`<button class="icon-btn sm" data-adj="-1" data-id="${p.id}" ${p.stock<=0?'disabled':''}><i class="fa-solid fa-minus"></i></button>`:'<span></span>'}<span class="stock-n">${p.stock}</span>${can('edit')?`<button class="icon-btn sm" data-adj="1" data-id="${p.id}"><i class="fa-solid fa-plus"></i></button>`:'<span></span>'}</div></td><td>${badge(st)}</td><td class="muted">${money(p.stock*p.cost)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-pact2="edit" data-id="${p.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-pact2="del" data-id="${p.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
+  const ageBuckets=[['0–30 days',0,30],['31–60 days',31,60],['61–90 days',61,90],['90+ days',91,1e9]];
+  const ageStrip=ageBuckets.map(b=>{const items=db.products.filter(p=>{const a=stockAgeDays(p);return a!=null&&a>=b[1]&&a<=b[2];});const val=items.reduce((s,p)=>s+p.stock*p.cost,0);return `<div class="card" style="flex:1;min-width:140px;padding:12px 14px;margin:0"><div class="muted small">Stock ${b[0]}</div><div class="strong" style="font-size:15px">${items.length} item${items.length===1?'':'s'}</div><div class="muted small">${money(Math.round(val))}</div></div>`;}).join('');
+  const rows=slice.map(p=>{const st=p.stock===0?'Out of Stock':p.stock<=p.reorder?'Low Stock':'In Stock';const age=stockAgeDays(p);
+    return `<tr><td class="mono muted">${p.sku}</td><td><div style="display:flex;align-items:center;gap:10px">${avatar(p.name,28)}<div><b style="font-size:13px">${esc(p.name)}</b><div class="muted small">${esc(p.supplier)}</div></div></div></td><td><span class="badge b-gray">${p.category}</span></td><td class="strong">${money2(p.price)}</td><td class="muted">${money2(p.cost)}</td><td><div class="stepper">${can('edit')?`<button class="icon-btn sm" data-adj="-1" data-id="${p.id}" ${p.stock<=0?'disabled':''}><i class="fa-solid fa-minus"></i></button>`:'<span></span>'}<span class="stock-n">${p.stock}</span>${can('edit')?`<button class="icon-btn sm" data-adj="1" data-id="${p.id}"><i class="fa-solid fa-plus"></i></button>`:'<span></span>'}</div></td><td>${badge(st)}</td><td class="muted">${age==null?'—':age+' d'}</td><td class="muted">${money(p.stock*p.cost)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-pact2="edit" data-id="${p.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-pact2="del" data-id="${p.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
   return tabs+`${low.length?`<div class="alert-strip"><i class="fa-solid fa-boxes-stacked"></i><span><b>${low.length}</b> item${low.length>1?'s':''} need reordering.</span>${can('create')?`<button class="btn btn-primary btn-xs" id="btnAutoPo" style="margin-left:auto"><i class="fa-solid fa-truck-fast"></i> Auto-PO</button>`:''}</div>`:''}
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">${ageStrip}</div>
   <div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="invSearch" placeholder="Search name, SKU, supplier…" value="${esc(c.q)}"></div><select id="invCat" style="width:170px"><option value="all">All Categories</option>${cats.map(x=>`<option ${c.cat===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnInvExport"><i class="fa-solid fa-download"></i> Export</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> Add Product</button>`:''}</div></div>
-  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Stock Value</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No products found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Category</th><th>Price</th><th>Avg Cost</th><th>Stock</th><th>Status</th><th>Age</th><th>Stock Value</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No products found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
 function mountInventory(){
   const c=ctl.inventory;
@@ -745,7 +805,7 @@ function mountInventory(){
   }
   bindSearch('#invSearch',c);restoreFocus(c,'#invSearch');bindPager(c);
   $('#invCat').onchange=e=>{c.cat=e.target.value;c.page=1;rerender();};
-  $$('#view [data-adj]').forEach(b=>b.onclick=()=>{if(!guard('edit'))return;const p=db.products.find(x=>x.id===b.dataset.id);p.stock=Math.max(0,p.stock+ +b.dataset.adj);logMovement(p.id,+b.dataset.adj,'Manual Adjustment','');addActivity('fa-arrows-rotate',`${b.dataset.adj>0?'Stock added':'Stock removed'}: ${Math.abs(b.dataset.adj)} × ${p.name}`);audit('fa-arrows-rotate',`Stock ${b.dataset.adj>0?'increased':'decreased'}`,'Inventory',p.name,`${+b.dataset.adj} units → ${p.stock}`);save();rerender();});
+  $$('#view [data-adj]').forEach(b=>b.onclick=()=>{if(!guard('edit'))return;const p=db.products.find(x=>x.id===b.dataset.id);const d=+b.dataset.adj;if(d>0)restock(p,d,p.cost);else p.stock=Math.max(0,p.stock+d);logMovement(p.id,d,'Manual Adjustment','');addActivity('fa-arrows-rotate',`${d>0?'Stock added':'Stock removed'}: ${Math.abs(d)} × ${p.name}`);audit('fa-arrows-rotate',`Stock ${d>0?'increased':'decreased'}`,'Inventory',p.name,`${d} units → ${p.stock} · avg cost ${money2(p.cost)}`);save();rerender();});
   $$('#view [data-pact2]').forEach(b=>b.onclick=()=>{const p=db.products.find(x=>x.id===b.dataset.id);
     if(b.dataset.pact2==='edit'){if(!guard('edit'))return;openProductModal(p);}
     else{if(!guard('delete'))return;confirmModal('Delete product',`Remove "${p.name}" from inventory? Existing orders keep their history.`,()=>{db.products.splice(db.products.indexOf(p),1);addActivity('fa-trash','Product '+p.name+' removed');audit('fa-trash','Product deleted','Inventory',p.name);save();toast('Product deleted','fa-trash','warn');rerender();});}});
@@ -778,10 +838,10 @@ function viewCustomers(){
   if(c.tier!=='all')list=list.filter(x=>x.tier===c.tier);
   if(c.q){const q=c.q.toLowerCase();list=list.filter(x=>x.company.toLowerCase().includes(q)||x.name.toLowerCase().includes(q)||x.email.toLowerCase().includes(q));}
   const {slice,pages,total}=paginate(list,c);
-  const rows=slice.map(x=>{const ords=db.orders.filter(o=>o.customerId===x.id&&o.status!=='Cancelled');const spent=ords.reduce((s,o)=>s+o.total,0);
-    return `<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(x.company,32)}<div><b style="font-size:13px">${esc(x.company)}</b><div class="muted small">${esc(x.name)}</div></div></div></td><td class="muted">${esc(x.email)}</td><td class="muted">${FLAGS[x.country]||'🌐'} ${esc(x.country)}</td><td>${badge(x.tier)}</td><td class="strong">${ords.length}</td><td class="strong">${money(spent)}</td><td class="muted">${fmtDate(x.since)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-cact="edit" data-id="${x.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-cact="del" data-id="${x.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
+  const rows=slice.map(x=>{const ords=db.orders.filter(o=>o.customerId===x.id&&o.status!=='Cancelled');const spent=ords.reduce((s,o)=>s+o.total,0);const cs=creditState(x);
+    return `<tr><td><div style="display:flex;align-items:center;gap:10px">${avatar(x.company,32)}<div><b style="font-size:13px">${esc(x.company)}</b><div class="muted small">${esc(x.name)}</div></div></div></td><td class="muted">${esc(x.email)}</td><td class="muted">${FLAGS[x.country]||'🌐'} ${esc(x.country)}</td><td>${badge(x.tier)}</td><td>${x.hold?'<span class="badge" style="background:rgba(239,68,68,.12);color:var(--red)">Held</span>':'<span class="badge" style="background:rgba(99,102,241,.12);color:var(--primary)">'+esc(x.terms)+'</span>'}<div class="muted small" style="${cs.over?'color:var(--red);font-weight:600':''}">${cs.limit>0?money(cs.used)+' / '+money(cs.limit):'No limit'}</div></td><td class="strong">${ords.length}</td><td class="strong">${money(spent)}</td><td class="muted">${fmtDate(x.since)}</td><td><div class="row-actions">${can('edit')?`<button class="icon-btn sm" data-cact="edit" data-id="${x.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-cact="del" data-id="${x.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
   return `<div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="cusSearch" placeholder="Search company, contact, email…" value="${esc(c.q)}"></div><select id="cusTier" style="width:140px"><option value="all">All Tiers</option>${['VIP','Standard','New'].map(t=>`<option ${c.tier===t?'selected':''}>${t}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnCusExport"><i class="fa-solid fa-download"></i> Export</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnCusNew"><i class="fa-solid fa-user-plus"></i> Add Customer</button>`:''}</div></div>
-  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Company</th><th>Email</th><th>Country</th><th>Tier</th><th>Orders</th><th>Lifetime Value</th><th>Customer Since</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No customers found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Company</th><th>Email</th><th>Country</th><th>Tier</th><th>Terms / Credit</th><th>Orders</th><th>Lifetime Value</th><th>Customer Since</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No customers found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
 }
 function mountCustomers(){
   const c=ctl.customers;
@@ -791,7 +851,7 @@ function mountCustomers(){
     if(b.dataset.cact==='edit'){if(!guard('edit'))return;openCustomerModal(x);}
     else{if(!guard('delete'))return;confirmModal('Delete customer',`Remove ${x.company}? Order history will be preserved.`,()=>{db.customers.splice(db.customers.indexOf(x),1);audit('fa-trash','Customer deleted','Customers',x.company);save();toast('Customer deleted','fa-trash','warn');rerender();});}});
   const nc=$('#btnCusNew');if(nc)nc.onclick=()=>{if(guard('create'))openCustomerModal(null);};
-  const nx=$('#btnCusExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('customers.csv',['Company','Contact','Email','Phone','Country','Tier'],db.customers.map(x=>[x.company,x.name,x.email,x.phone,x.country,x.tier]));audit('fa-download','Exported','Customers','customers.csv');save();toast('Customers exported to CSV');};
+  const nx=$('#btnCusExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('customers.csv',['Company','Contact','Email','Phone','Country','Tier','Terms','Credit Limit','Hold'],db.customers.map(x=>[x.company,x.name,x.email,x.phone,x.country,x.tier,x.terms,x.creditLimit||'',x.hold?'Yes':'No']));audit('fa-download','Exported','Customers','customers.csv');save();toast('Customers exported to CSV');};
 }
 
 /* ----- HR ----- */
@@ -843,7 +903,7 @@ function mountProcurement(){
     if(a!=='del'&&!guard('edit'))return;
     if(a==='approve'){po.status='Approved';audit('fa-check','PO approved','Procurement',po.id);toast(po.id+' approved');}
     if(a==='ship'){po.status='In Transit';audit('fa-truck','PO shipped','Procurement',po.id);toast(po.id+' marked in transit','fa-truck','info');}
-    if(a==='receive'){po.status='Received';const p=db.products.find(x=>x.id===po.productId);if(p){p.stock+=po.qty;logMovement(p.id,po.qty,'PO Received',po.id);}addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);audit('fa-box','PO received','Procurement',po.id,`${po.qty} × ${po.productName} received into stock`);pushNotif('fa-box','Stock received',`${po.qty} × ${po.productName} from ${po.supplierName}`);toast(po.id+' received — stock updated');}
+    if(a==='receive'){po.status='Received';const p=db.products.find(x=>x.id===po.productId);if(p){const prev=p.cost;restock(p,po.qty,po.cost);logMovement(p.id,po.qty,'PO Received',po.id);addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);audit('fa-box','PO received','Procurement',po.id,`${po.qty} × ${po.productName} · avg cost ${money2(prev)} → ${money2(p.cost)}`);pushNotif('fa-box','Stock received',`${po.qty} × ${po.productName} from ${po.supplierName}`);}else{addActivity('fa-box',`Stock received: ${po.qty} × ${po.productName}`);audit('fa-box','PO received','Procurement',po.id,`${po.qty} × ${po.productName}`);}toast(po.id+' received — stock updated');}
     if(a==='del'){if(!guard('delete'))return;confirmModal('Delete PO','Delete '+po.id+'? This does not affect stock.',()=>{db.pos.splice(db.pos.indexOf(po),1);audit('fa-trash','PO deleted','Procurement',po.id);save();toast('PO deleted','fa-trash','warn');rerender();});return;}
     save();rerender();});
   $$('#view [data-sact]').forEach(b=>b.onclick=()=>{const s=db.suppliers.find(x=>x.id===b.dataset.id);
@@ -859,6 +919,11 @@ function viewFinance(){
   const outstanding=db.invoices.filter(i=>i.status!=='Paid').reduce((s,i)=>s+i.amount,0);
   const profit=rev[11]-exp[11];const margin=rev[11]?Math.round(profit/rev[11]*100):0;
   const rows=db.invoices.map(i=>`<tr><td class="mono strong">${i.id}</td><td>${avatar(i.customerName,26)} ${esc(i.customerName)}</td><td class="mono muted">${i.orderId?esc(i.orderId):'—'}</td><td class="muted">${fmtDate(i.issued)}</td><td class="muted">${fmtDate(i.due)}</td><td class="strong">${money(i.amount)}</td><td>${badge(i.status)}</td><td><div class="row-actions">${i.status!=='Paid'&&can('edit')?`<button class="btn btn-ghost btn-xs" data-iact="pay" data-id="${i.id}"><i class="fa-solid fa-check"></i> Mark Paid</button>`:(i.status==='Paid'?`<span class="muted small">Settled ${i.paidOn?fmtDate(i.paidOn):''}</span>`:'')}${can('delete')?`<button class="icon-btn sm danger" data-iact="del" data-id="${i.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
+  const openInv=db.invoices.filter(i=>i.status!=='Paid');
+  const agBuckets=[['Current',0,1e9,0],['1–30 days',1,30,0],['31–60 days',31,60,0],['61–90 days',61,90,0],['90+ days',91,1e9,0]];
+  const agList=openInv.map(i=>({...i,days:Math.max(0,Math.floor((Date.now()-new Date(i.due))/864e5))})).sort((a,b)=>b.days-a.days);
+  agBuckets.forEach(b=>{b[3]=agList.filter(r=>r.days>=b[1]&&r.days<=b[2]).reduce((s,r)=>s+r.amount,0);});
+  const arows=agList.map(i=>`<tr><td class="mono strong">${i.id}</td><td>${avatar(i.customerName,26)} ${esc(i.customerName)}</td><td class="muted">${fmtDate(i.due)}</td><td class="strong" style="${i.days>0?'color:var(--red)':''}">${i.days>0?i.days+' d':'Due now'}</td><td>${badge(i.days===0?'Current':(i.days<=30?'1–30':(i.days<=60?'31–60':(i.days<=90?'61–90':'90+'))))}</td><td class="strong">${money(i.amount)}</td></tr>`).join('');
   return `<div class="grid g-4 mb">
     <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c4"><i class="fa-solid fa-arrow-trend-up"></i></div>${spark(rev.slice(-8),'#10b981')}</div><div class="kpi-val" data-num="${rev[11]}" data-fmt="money">${money(rev[11])}</div><div class="kpi-label">Revenue (this month)</div><div class="kpi-sub">${deltaHtml(pct(rev[11],rev[10]))}</div></div>
     <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c3"><i class="fa-solid fa-arrow-trend-down"></i></div>${spark(exp.slice(-8),'#f59e0b')}</div><div class="kpi-val" data-num="${exp[11]}" data-fmt="money">${money(exp[11])}</div><div class="kpi-label">Expenses (this month)</div><div class="kpi-sub">${deltaHtml(pct(exp[11],exp[10]))}</div></div>
@@ -869,7 +934,8 @@ function viewFinance(){
     <div class="card"><div class="card-h"><div><h3>Revenue vs Expenses</h3><p>Trailing 12 months</p></div></div><div class="card-b"><div class="chart-box"><canvas id="chFin"></canvas></div></div></div>
     <div class="card"><div class="card-h"><div><h3>Expense Breakdown</h3><p>YTD allocation</p></div></div><div class="card-b"><div class="chart-box"><canvas id="chExp"></canvas></div></div></div>
   </div>
-  <div class="card"><div class="card-h"><div><h3>Invoices &amp; Receivables</h3><p>${db.invoices.length} invoices</p></div>${can('create')?`<button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> New Invoice</button>`:''}</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Customer</th><th>Source</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  <div class="card"><div class="card-h"><div><h3>Invoices &amp; Receivables</h3><p>${db.invoices.length} invoices</p></div>${can('create')?`<button class="btn btn-primary btn-sm" id="btnInvNew"><i class="fa-solid fa-plus"></i> New Invoice</button>`:''}</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Customer</th><th>Source</th><th>Issued</th><th>Due</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>
+  <div class="card"><div class="card-h"><div><h3>Accounts Receivable Aging</h3><p>${openInv.length} outstanding — aging from invoice due date</p></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;padding:14px 16px 0">${agBuckets.map(b=>`<div style="flex:1;min-width:120px;padding:10px 12px;border:1px solid var(--border);border-radius:10px"><div class="muted small">${b[0]}</div><div class="strong">${money(b[3])}</div><div class="muted small">${agList.filter(r=>r.days>=b[1]&&r.days<=b[2]).length} invoice(s)</div></div>`).join('')}</div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Customer</th><th>Due Date</th><th>Days Overdue</th><th>Bucket</th><th>Amount</th></tr></thead><tbody>${arows}</tbody></table>${openInv.length?'':'<div class="empty"><i class="fa-regular fa-circle-check"></i>No outstanding receivables</div>'}</div></div>`;
 }
 function mountFinance(){
   animateKpis();
@@ -882,6 +948,58 @@ function mountFinance(){
   const totExp=exp.reduce((a,b)=>a+b,0);
   const parts=[['Cost of Goods',.58],['Payroll',.22],['Marketing',.09],['Operations',.07],['Other',.04]];
   charts.push(new Chart($('#chExp'),{type:'doughnut',data:{labels:parts.map(p=>p[0]),datasets:[{data:parts.map(p=>Math.round(totExp*p[1])),backgroundColor:PALETTE,borderWidth:0,hoverOffset:8}]},options:{maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:7,padding:14}},tooltip:{callbacks:{label:c=>` ${c.label}: ${money(c.parsed)}`}}}}}));
+}
+
+/* ----- Fixed Assets ----- */
+function viewAssets(){
+  const c=ctl.assets;
+  const cats=[...new Set(db.assets.map(a=>a.category))];
+  let list=[...db.assets];
+  if(c.cat!=='all')list=list.filter(a=>a.category===c.cat);
+  if(c.q){const q=c.q.toLowerCase();list=list.filter(a=>a.name.toLowerCase().includes(q)||a.category.toLowerCase().includes(q));}
+  const {slice,pages,total}=paginate(list,c);
+  const totalCost=db.assets.reduce((s,a)=>s+a.cost,0),accDep=db.assets.reduce((s,a)=>s+assetAccumDep(a),0);
+  const nbv=totalCost-accDep,monthlyDep=db.assets.reduce((s,a)=>s+assetMonthlyDep(a),0);
+  const rows=slice.map(a=>{const md=assetMonthlyDep(a),acc=assetAccumDep(a),nb=assetNbv(a);
+    return `<tr><td class="mono strong">${a.id}</td><td><div style="display:flex;align-items:center;gap:10px">${avatar(a.name,30)}<div><b style="font-size:13px">${esc(a.name)}</b><div class="muted small">${a.category}</div></div></div></td><td class="muted">${fmtDate(a.purchaseDate)}</td><td class="strong">${money(a.cost)}</td><td class="muted">${a.usefulLifeYears} yr</td><td class="muted">${money2(md)}</td><td class="muted">${money2(acc)}</td><td class="strong">${money(nb)}</td><td>${badge(a.status)}</td><td><div class="row-actions">${a.status!=='Disposed'&&can('edit')?`<button class="btn btn-ghost btn-xs" data-aact="dispose" data-id="${a.id}"><i class="fa-solid fa-box-archive"></i> Dispose</button>`:''}${can('edit')?`<button class="icon-btn sm" data-aact="edit" data-id="${a.id}"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-aact="del" data-id="${a.id}"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`;}).join('');
+  return `<div class="grid g-4 mb">
+    <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c1"><i class="fa-solid fa-coins"></i></div></div><div class="kpi-val" data-num="${totalCost}" data-fmt="money">${money(totalCost)}</div><div class="kpi-label">Total Asset Cost</div><div class="kpi-sub"><span class="vs">${db.assets.length} assets registered</span></div></div>
+    <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c3"><i class="fa-solid fa-arrow-down"></i></div></div><div class="kpi-val" data-num="${accDep}" data-fmt="money">${money(accDep)}</div><div class="kpi-label">Accumulated Depreciation</div><div class="kpi-sub"><span class="vs">${money2(monthlyDep)}/month running</span></div></div>
+    <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c4"><i class="fa-solid fa-building-columns"></i></div></div><div class="kpi-val" data-num="${nbv}" data-fmt="money">${money(nbv)}</div><div class="kpi-label">Net Book Value</div><div class="kpi-sub">${totalCost?Math.round(nbv/totalCost*100)+'% of original cost':''}</div></div>
+    <div class="card kpi"><div class="kpi-top"><div class="kpi-ico c2"><i class="fa-solid fa-calendar-days"></i></div></div><div class="kpi-val">${money2(monthlyDep)}</div><div class="kpi-label">Monthly Depreciation</div><div class="kpi-sub"><span class="vs">Straight-line method</span></div></div>
+  </div>
+  <div class="toolbar"><div class="toolbar-right" style="margin-right:auto"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="astSearch" placeholder="Search asset or category…" value="${esc(c.q)}"></div><select id="astCat" style="width:170px"><option value="all">All Categories</option>${cats.map(x=>`<option ${c.cat===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnAstExport"><i class="fa-solid fa-download"></i> Export</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnAstNew"><i class="fa-solid fa-plus"></i> Add Asset</button>`:''}</div></div>
+  <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Asset</th><th>Name</th><th>Purchased</th><th>Cost</th><th>Life</th><th>Monthly Dep</th><th>Accum. Dep</th><th>NBV</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No assets found</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
+}
+function mountAssets(){
+  const c=ctl.assets;
+  bindSearch('#astSearch',c);restoreFocus(c,'#astSearch');bindPager(c);animateKpis();
+  $('#astCat').onchange=e=>{c.cat=e.target.value;c.page=1;rerender();};
+  $$('#view [data-aact]').forEach(b=>b.onclick=()=>{const a=db.assets.find(x=>x.id===b.dataset.id);
+    if(b.dataset.aact==='edit'){if(!guard('edit'))return;openAssetModal(a);return;}
+    if(b.dataset.aact==='dispose'){if(!guard('edit'))return;confirmModal('Dispose asset','Mark '+a.name+' as disposed? Depreciation stops and NBV is written off.',()=>{a.status='Disposed';a.disposedOn=new Date().toISOString();audit('fa-box-archive','Asset disposed','Assets',a.id,`${a.name} · NBV ${money2(assetNbv(a))}`);save();toast(a.name+' disposed','fa-box-archive','warn');rerender();},'Dispose');return;}
+    if(!guard('delete'))return;confirmModal('Delete asset','Remove '+a.name+' from the register?',()=>{db.assets.splice(db.assets.indexOf(a),1);audit('fa-trash','Asset deleted','Assets',a.id,a.name);save();toast('Asset deleted','fa-trash','warn');rerender();});});
+  const na=$('#btnAstNew');if(na)na.onclick=()=>{if(guard('create'))openAssetModal(null);};
+  const nx=$('#btnAstExport');if(nx)nx.onclick=()=>{if(!guard('export'))return;exportCSV('assets.csv',['ID','Name','Category','Purchase Date','Cost','Salvage','Useful Life (yrs)','Status','Accum. Depreciation','NBV'],db.assets.map(a=>[a.id,a.name,a.category,a.purchaseDate.slice(0,10),a.cost,a.salvage,a.usefulLifeYears,a.status,assetAccumDep(a).toFixed(2),assetNbv(a).toFixed(2)]));audit('fa-download','Exported','Assets','assets.csv');save();toast('Assets exported to CSV');};
+}
+function openAssetModal(a){
+  const editing=!!a;
+  const cats=['IT Equipment','Vehicles','Furniture','Office Equipment','Machinery','Software','Leasehold Improvements'];
+  openModal(`<div class="modal-head"><div><h3>${editing?'Edit Asset':'Add Asset'}</h3></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
+  <form id="aForm" class="modal-body">
+    <label>Asset Name<input id="aa-name" required value="${editing?esc(a.name):''}" placeholder="e.g. Dell PowerEdge R740 Server"></label>
+    <div class="frow2"><label>Category<select id="aa-cat">${cats.map(c=>`<option ${editing&&a.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>Purchase Date<input type="date" id="aa-date" required value="${(editing?a.purchaseDate:new Date().toISOString()).slice(0,10)}"></label></div>
+    <div class="frow2"><label>Purchase Cost ($)<input type="number" step="0.01" min="0" id="aa-cost" required value="${editing?a.cost:''}"></label><label>Salvage Value ($)<input type="number" step="0.01" min="0" id="aa-salvage" value="${editing?a.salvage:0}"></label></div>
+    <label>Useful Life (years)<input type="number" min="1" max="50" id="aa-life" required value="${editing?a.usefulLifeYears:5}"></label>
+  </form>
+  <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="aa-save"><i class="fa-solid fa-check"></i> ${editing?'Save Changes':'Add Asset'}</button></div>`,540);
+  $('#aForm').onsubmit=e=>{e.preventDefault();$('#aa-save').click();};
+  $('#aa-save').onclick=()=>{
+    const data={name:$('#aa-name').value.trim(),category:$('#aa-cat').value,purchaseDate:new Date($('#aa-date').value+'T12:00:00').toISOString(),cost:+$('#aa-cost').value,salvage:+$('#aa-salvage').value||0,usefulLifeYears:Math.max(1,+$('#aa-life').value)};
+    if(!data.name||isNaN(data.cost))return;
+    if(editing){Object.assign(a,data);audit('fa-pen-to-square','Asset updated','Assets',a.id,data.name);}else{db.assets.push({id:'AST-'+String(db.seq.asset++).padStart(3,'0'),status:'In Service',disposedOn:null,...data});audit('fa-plus','Asset created','Assets',db.assets[0].id,`${data.name} · ${money2(data.cost)}`);addActivity('fa-building-columns','New asset added: '+data.name);}
+    save();closeModal();toast(editing?'Asset updated':'Asset added');rerender();
+  };
 }
 
 /* ----- Reports ----- */
@@ -988,6 +1106,7 @@ function openOrderModal(order,mode='order'){
   openModal(`<div class="modal-head"><div><h3>${editing?(isQ?'Edit ':'Edit ')+order.id:(isQ?'New Sales Quote':'New Sales Order')}</h3><p>${isQ?'Prepare a quote — no stock is allocated until converted':'Create a new order — stock is allocated automatically'}</p></div><button class="icon-btn modal-close"><i class="fa-solid fa-xmark"></i></button></div>
   <form id="orderForm" class="modal-body" style="overflow-y:auto">
     <div class="frow2"><label>Customer<select id="of-cust" required>${custOpts}</select></label><label>${isQ?'Quote Date':'Order Date'}<input type="date" id="of-date" required value="${(editing?order.date:new Date().toISOString()).slice(0,10)}"></label></div>
+    ${isQ?'':'<div class="muted small" id="of-credit"></div>'}
     <label>Status<select id="of-status">${stOpts}</select></label>
     <div class="items-label"><span>Line Items</span><button type="button" class="btn btn-ghost btn-xs" id="of-additem"><i class="fa-solid fa-plus"></i> Add Item</button></div>
     <div id="of-items"></div>
@@ -1000,6 +1119,7 @@ function openOrderModal(order,mode='order'){
   $('#of-additem').onclick=()=>{draft.items.push({productId:'',qty:1});renderDraft();};
   $('#of-save').onclick=saveOrder;
   $('#of-disc').oninput=()=>{draft.discPct=+$('#of-disc').value||0;renderDraft();};
+  if(!isQ){const hint=$('#of-credit');const refresh=()=>{const c=db.customers.find(x=>x.id===$('#of-cust').value);if(!c){hint.innerHTML='';return;}const st=creditState(c);hint.innerHTML=st.limit>0?`<i class="fa-solid fa-circle-info"></i> ${esc(c.terms)} · Credit <b>${money(st.used)}</b> of <b>${money(st.limit)}</b> used${st.over?' <span style="color:var(--red);font-weight:600">— over limit</span>':''}`:`<i class="fa-solid fa-circle-info"></i> ${esc(c.terms)} · No credit limit set`;};$('#of-cust').onchange=refresh;refresh();}
 }
 function renderDraft(){
   const wrap=$('#of-items');
@@ -1027,6 +1147,7 @@ function saveOrder(){
   const disc=sub*discPct/100,taxable=sub-disc;
   const tax=taxable*cfg.taxRate/100,ship=sub>cfg.freeShipOver||sub===0?0:cfg.shippingFee,total=taxable+tax+ship;
   const cust=db.customers.find(c=>c.id===customerId);
+  if(draft.mode!=='quote'&&cust){let base=null;if(draft.editingId){const eo=db.orders.find(o=>o.id===draft.editingId);if(eo)base=Math.max(0,customerOutstanding(cust)-Math.max(0,orderNet(eo)-orderPaid(eo)));}const block=creditBlock(cust,total,base);if(block){toast(block,'fa-ban','error');audit('fa-ban','Order blocked','Orders',cust.company,block);return;}}
   if(draft.mode==='quote'){
     const payload={customerId,customerName:cust.company,items,sub,tax,ship,total,discPct,status,date:new Date(date+'T12:00:00').toISOString()};
     if(draft.editingId){
@@ -1191,11 +1312,13 @@ function openCustomerModal(x){
     <div class="frow2"><label>Company<input id="cc-co" required value="${editing?esc(x.company):''}"></label><label>Contact Person<input id="cc-name" required value="${editing?esc(x.name):''}"></label></div>
     <div class="frow2"><label>Email<input type="email" id="cc-email" required value="${editing?esc(x.email):''}"></label><label>Phone<input id="cc-phone" value="${editing?esc(x.phone):''}"></label></div>
     <div class="frow2"><label>Country<select id="cc-country">${Object.keys(FLAGS).map(c=>`<option ${editing&&x.country===c?'selected':''}>${c}</option>`).join('')}</select></label><label>Tier<select id="cc-tier">${['VIP','Standard','New'].map(t=>`<option ${editing&&x.tier===t?'selected':''}>${t}</option>`).join('')}</select></label></div>
+    <div class="frow2"><label>Payment Terms<select id="cc-terms">${Object.keys(TERMS_DAYS).map(t=>`<option ${editing&&x.terms===t?'selected':''}>${t}</option>`).join('')}</select></label><label>Credit Limit ($)<input type="number" min="0" step="100" id="cc-limit" placeholder="0 = no limit" value="${editing?(x.creditLimit||''):''}"></label></div>
+    <label class="check"><input type="checkbox" id="cc-hold" ${editing&&x.hold?'checked':''}> <span>Place account on hold (blocks new orders)</span></label>
   </form>
   <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="cc-save"><i class="fa-solid fa-check"></i> ${editing?'Save Changes':'Add Customer'}</button></div>`,560);
   $('#cForm').onsubmit=e=>{e.preventDefault();$('#cc-save').click();};
   $('#cc-save').onclick=()=>{
-    const data={company:$('#cc-co').value.trim(),name:$('#cc-name').value.trim(),email:$('#cc-email').value.trim(),phone:$('#cc-phone').value.trim()||'—',country:$('#cc-country').value,tier:$('#cc-tier').value};
+    const data={company:$('#cc-co').value.trim(),name:$('#cc-name').value.trim(),email:$('#cc-email').value.trim(),phone:$('#cc-phone').value.trim()||'—',country:$('#cc-country').value,tier:$('#cc-tier').value,terms:$('#cc-terms').value,creditLimit:+$('#cc-limit').value||0,hold:$('#cc-hold').checked};
     if(!data.company||!data.name)return;
     if(editing){Object.assign(x,data);audit('fa-pen-to-square','Customer updated','Customers',data.company);}else{db.customers.push({id:'CUS-'+(db.seq.cust++),since:new Date().toISOString(),...data});addActivity('fa-user-plus','New customer '+data.company+' added');audit('fa-user-plus','Customer created','Customers',data.company,data.tier);}
     save();closeModal();toast(editing?'Customer updated':'Customer added');rerender();
@@ -1263,9 +1386,11 @@ function openInvoiceModal(){
   <form id="iForm" class="modal-body">
     <label>Customer<select id="ii-cust">${db.customers.map(c=>`<option value="${c.id}">${esc(c.company)}</option>`).join('')}</select></label>
     <div class="frow2"><label>Amount ($)<input type="number" min="1" step="0.01" id="ii-amt" required></label><label>Due Date<input type="date" id="ii-due" value="${new Date(Date.now()+30*864e5).toISOString().slice(0,10)}"></label></div>
+  <div class="muted small" id="ii-credit"></div>
   </form>
   <div class="modal-foot"><div class="spacer"></div><button class="btn btn-ghost modal-close">Cancel</button><button class="btn btn-primary" id="ii-save"><i class="fa-solid fa-check"></i> Issue Invoice</button></div>`,480);
   $('#iForm').onsubmit=e=>{e.preventDefault();$('#ii-save').click();};
+  const hint=$('#ii-credit');const refresh=()=>{const c=db.customers.find(x=>x.id===$('#ii-cust').value);if(!c){hint.innerHTML='';return;}const st=creditState(c);hint.innerHTML=`<i class="fa-solid fa-circle-info"></i> ${esc(c.terms)} · Credit <b>${money(st.used)}</b> of <b>${money(st.limit)}</b> used`;};$('#ii-cust').onchange=refresh;refresh();
   $('#ii-save').onclick=()=>{
     const c=db.customers.find(x=>x.id===$('#ii-cust').value);const amt=+$('#ii-amt').value;
     if(!amt||amt<=0){toast('Enter a valid amount','fa-triangle-exclamation','warn');return;}
@@ -1284,6 +1409,7 @@ const VIEWS={
   hr:{title:'Human Resources',sub:'Team, departments and payroll',render:viewHR,mount:mountHR},
   procurement:{title:'Procurement',sub:'Purchase orders and suppliers',render:viewProcurement,mount:mountProcurement},
   finance:{title:'Finance',sub:'Revenue, expenses and receivables',render:viewFinance,mount:mountFinance},
+  assets:{title:'Fixed Assets',sub:'Asset register and depreciation schedules',render:viewAssets,mount:mountAssets},
   reports:{title:'Reports',sub:'Analytics and data exports',render:viewReports,mount:mountReports},
   audit:{title:'Audit Log',sub:'Searchable trail of every system action',render:viewAudit,mount:mountAudit},
   settings:{title:'Settings',sub:'Profile, preferences and data',render:viewSettings,mount:mountSettings}
