@@ -54,3 +54,14 @@ Then open http://localhost:8080/nexus-erp.html and sign in with a demo account:
 ## Reset
 
 Use **Settings - Reset Demo Data** to regenerate the demo dataset at any time.
+
+## Backend API (under construction)
+
+A .NET backend lives in the same repository under `backend/` so the whole project - client and server - ships together.
+
+- `backend/XeoTechErp.sln` - solution to open in Visual Studio
+- `backend/XeoTechErp.Api/` - ASP.NET Core Web API (net10.0) + EF Core 8 + SQLite
+- `backend/XeoTechErp.Api/Models/` - entities mirroring the front-end data model (Product, Customer, Order/OrderItem, Quote/QuoteItem, Invoice, Payment, Return, PurchaseOrder, StockMovement, Asset, Budget, AppConfig, AuditLog, Users, suppliers, employees, notifications, activities)
+- `backend/XeoTechErp.Api/Data/` - EF Core `DbContext` plus the generated `InitialCreate` schema migration (22 tables)
+
+Run it with `dotnet run --project backend/XeoTechErp.Api` (or F5 in Visual Studio). It creates `xeotech-erp.db`, applies the migration, seeds the admin account (`admin@nexuserp.io` / `admin123`) and opens the OpenAPI document at `/openapi/v1.json`. Controllers and auth are not implemented yet - the schema is the current deliverable.
