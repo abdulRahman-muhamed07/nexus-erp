@@ -1,4 +1,4 @@
-# Nexus ERP - Business Suite
+# XeoTech ERP - Business Suite
 
 A complete, client-side Enterprise Resource Planning (ERP) application built with vanilla HTML, CSS, and JavaScript. Runs entirely in the browser with data persisted to `localStorage` - no backend required.
 
