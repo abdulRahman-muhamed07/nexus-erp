@@ -740,7 +740,7 @@ function viewOrdersList(){
   list.sort((a,b)=>{let x=a[c.sortKey],y=b[c.sortKey];if(c.sortKey==='total'){x=+x;y=+y;}else{x=String(x).toLowerCase();y=String(y).toLowerCase();}return (x<y?-1:x>y?1:0)*c.sortDir;});
   const {slice,pages,total}=paginate(list,c);
   const ico=k=>c.sortKey===k?`<i class="fa-solid fa-caret-${c.sortDir===1?'up':'down'}"></i>`:'';
-  const rows=slice.map(o=>`<tr><td class="mono strong">${o.id}</td><td>${avatar(o.customerName,26)} ${esc(o.customerName)}</td><td class="muted">${fmtDate(o.date)}</td><td class="muted">${o.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(o.total)}</td><td>${badge(o.status)}</td><td>${badge(payStatus(o))}${orderPaid(o)>0?`<span class="muted small" style="margin-left:6px" title="Paid ${money2(orderPaid(o))} of ${money2(orderNet(o))}">${money2(orderPaid(o))}</span>`:''}</td><td><div class="row-actions"><button class="icon-btn sm" data-oact="view" data-id="${o.id}" title="View"><i class="fa-regular fa-eye"></i></button>${can('edit')?`<button class="icon-btn sm" data-oact="edit" data-id="${o.id}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-oact="del" data-id="${o.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
+  const rows=slice.map(o=>`<tr><td class="mono strong">${o.id}</td><td>${avatar(o.customerName,26)} ${esc(o.customerName)}</td><td class="muted">${fmtDate(o.date)}</td><td class="muted">${o.items.reduce((s,i)=>s+i.qty,0)} items</td><td class="strong">${money2(o.total)}</td><td>${badge(o.status)}</td><td>${badge(payStatus(o))}${orderPaid(o)>0?`<span class="muted small" style="margin-left:6px" title="Paid ${money2(orderPaid(o))} of ${money2(orderNet(o))}">${money2(orderPaid(o))}</span>`:''}</td><td><div class="row-actions"><button class="icon-btn sm" data-oact="view" data-id="${o.id}" title="View"><i class="fa-regular fa-eye"></i></button>${can('edit')?`<button class="icon-btn sm" data-oact="edit" data-id="${o.id}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></button>`:''}${can('create')?`<button class="icon-btn sm" data-oact="dup" data-id="${o.id}" title="Duplicate"><i class="fa-regular fa-copy"></i></button>`:''}${can('delete')?`<button class="icon-btn sm danger" data-oact="del" data-id="${o.id}" title="Delete"><i class="fa-regular fa-trash-can"></i></button>`:''}</div></td></tr>`).join('');
   return `<div class="toolbar"><div class="chips">${chips}</div><div class="toolbar-right">${can('export')?`<button class="btn btn-ghost btn-sm" id="btnOrdersExport"><i class="fa-solid fa-download"></i> Export CSV</button>`:''}${can('create')?`<button class="btn btn-primary btn-sm" id="btnOrdersNew"><i class="fa-solid fa-plus"></i> New Order</button>`:''}</div></div>
   <div class="card"><div class="toolbar inner"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="ordersSearch" placeholder="Search by ID, customer or product…" value="${esc(c.q)}"></div><div class="spacer"></div><span class="muted small">${total} order${total===1?'':'s'}</span></div>
   <div class="tbl-wrap"><table class="tbl"><thead><tr><th data-osort="id">Order ${ico('id')}</th><th data-osort="customerName">Customer ${ico('customerName')}</th><th data-osort="date">Date ${ico('date')}</th><th>Items</th><th data-osort="total">Total ${ico('total')}</th><th data-osort="status">Status ${ico('status')}</th><th>Payment</th><th></th></tr></thead><tbody>${rows}</tbody></table>${slice.length?'':'<div class="empty"><i class="fa-regular fa-folder-open"></i>No orders match your filters</div>'}</div>${pagerHtml(c,pages,total)}</div>`;
@@ -774,6 +774,7 @@ function mountOrders(){
   $$('#view [data-oact]').forEach(b=>b.onclick=()=>{const o=db.orders.find(x=>x.id===b.dataset.id);if(!o)return;const a=b.dataset.oact;
     if(a==='view')openOrderView(o.id);
     if(a==='edit'){if(!guard('edit'))return;openOrderModal(o);}
+    if(a==='dup'){if(!guard('create'))return;duplicateOrder(o.id);}
     if(a==='del'){if(!guard('delete'))return;confirmModal('Delete order',`This will permanently delete ${o.id} and restore its stock. This action cannot be undone.`,()=>{if(o.status!=='Cancelled')applyStock(o,1,'Order Deleted',o.id);db.orders.splice(db.orders.indexOf(o),1);addActivity('fa-trash','Order '+o.id+' deleted');audit('fa-trash','Order deleted','Orders',o.id);save();toast('Order deleted','fa-trash','warn');rerender();});}});
   const nn=$('#btnOrdersNew');if(nn)nn.onclick=()=>{if(guard('create'))openOrderModal(null);};
   const ne=$('#btnOrdersExport');if(ne)ne.onclick=()=>{if(!guard('export'))return;exportCSV('orders.csv',['Order ID','Customer','Date','Status','Subtotal','Tax','Shipping','Total'],db.orders.map(o=>[o.id,o.customerName,fmtDate(o.date),o.status,o.sub.toFixed(2),o.tax.toFixed(2),o.ship.toFixed(2),o.total.toFixed(2)]));audit('fa-download','Exported','Orders','orders.csv');save();toast('Orders exported to CSV');};
@@ -1221,6 +1222,17 @@ function saveOrder(){
     toast('Order '+id+' created');
   }
   save();closeModal();navigate('orders');
+}
+function duplicateOrder(id){
+  const src=db.orders.find(o=>o.id===id);if(!src)return;
+  const nid='ORD-'+(db.seq.order++);
+  const copy={id:nid,customerId:src.customerId,customerName:src.customerName,items:src.items.map(i=>({...i})),sub:src.sub,tax:src.tax,ship:src.ship,total:src.total,discPct:src.discPct||0,status:'Pending',date:new Date().toISOString(),payments:[],returns:[]};
+  db.orders.unshift(copy);
+  applyStock(copy,-1,'Sale',copy.id);
+  addActivity('fa-copy',`Order ${nid} duplicated from ${src.id} — ${money(copy.total)}`);
+  audit('fa-copy','Order duplicated','Orders',nid,`Copy of ${src.id} · ${money2(copy.total)}`);
+  pushNotif('fa-copy','Order duplicated',`${nid} copied from ${src.id} · ${money(copy.total)}`);
+  save();toast('Order '+nid+' created from '+src.id,'fa-copy');rerender();
 }
 function openOrderView(id){
   const o=db.orders.find(x=>x.id===id);if(!o)return;
