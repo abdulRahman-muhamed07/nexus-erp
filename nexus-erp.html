@@ -1521,6 +1521,7 @@ function bindTopbar(){
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'){closeModal();$('#searchPop').classList.remove('show');$('#notifPop').classList.remove('show');$('#userPop').classList.remove('show');}
     if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();$('#globalSearch').focus();}
+    if(e.ctrlKey&&e.key==='n'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();if(guard('create'))openOrderModal(null);}
   });
   /* Global quick search */
   const gs=$('#globalSearch'),pop=$('#searchPop');
