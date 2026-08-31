@@ -40,7 +40,7 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
         return repository.GetPeriodSummaryAsync(start, end, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Asset>> GetAssetsAsync(CancellationToken cancellationToken = default) => await repository.GetAssetsAsync(cancellationToken);
+    public Task<IReadOnlyList<Asset>> GetAssetsAsync(CancellationToken cancellationToken = default) => repository.GetAssetsAsync(cancellationToken);
 
     public async Task<Asset> CreateAssetAsync(Asset asset, CancellationToken cancellationToken = default)
     {
@@ -76,11 +76,7 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
         if (string.IsNullOrWhiteSpace(input.Category) || input.MonthlyAmount < 0) throw new ArgumentException("Invalid budget.");
         var category = input.Category.Trim();
         var budget = await repository.GetBudgetByCategoryAsync(category, cancellationToken);
-        if (budget is null)
-        {
-            input.Id = 0; input.Category = category;
-            repository.AddBudget(input); budget = input;
-        }
+        if (budget is null) { input.Id = 0; input.Category = category; repository.AddBudget(input); budget = input; }
         else budget.MonthlyAmount = input.MonthlyAmount;
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return budget;
@@ -88,9 +84,7 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
 
     public async Task DeleteBudgetAsync(int id, CancellationToken cancellationToken = default)
     {
-        var budget = await repository.GetBudgetByCategoryAsync(string.Empty, cancellationToken);
-        budget = await unitOfWork.GetByIdAsync<Budget>(id, cancellationToken);
-        if (budget is null) throw new KeyNotFoundException("Budget not found.");
+        var budget = await repository.GetBudgetByIdAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Budget not found.");
         repository.RemoveBudget(budget);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
@@ -98,7 +92,9 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
     public async Task<(IReadOnlyList<Expense> Data, int Total)> GetExpensesAsync(int page, int pageSize, string? category, CancellationToken cancellationToken = default)
     {
         page = Math.Max(page, 1); pageSize = Math.Clamp(pageSize, 1, 100);
-        return (await repository.GetExpensesAsync(page, pageSize, category, cancellationToken), await repository.CountExpensesAsync(category, cancellationToken));
+        var data = await repository.GetExpensesAsync(page, pageSize, category, cancellationToken);
+        var total = await repository.CountExpensesAsync(category, cancellationToken);
+        return (data, total);
     }
 
     public async Task<Expense> CreateExpenseAsync(Expense expense, CancellationToken cancellationToken = default)
@@ -111,12 +107,11 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
 
     public async Task DeleteExpenseAsync(int id, CancellationToken cancellationToken = default)
     {
-        var expense = await unitOfWork.GetByIdAsync<Expense>(id, cancellationToken) ?? throw new KeyNotFoundException("Expense not found.");
+        var expense = await repository.GetExpenseAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Expense not found.");
         repository.RemoveExpense(expense); await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public Task<IReadOnlyList<Invoice>> GetInvoicesAsync(InvoiceStatus? status, CancellationToken cancellationToken = default) => repository.GetInvoicesAsync(status, cancellationToken);
-
     public async Task<Invoice> GetInvoiceAsync(int id, CancellationToken cancellationToken = default) => await repository.GetInvoiceAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Invoice not found.");
 
     public async Task<Invoice> CreateInvoiceFromOrderAsync(int orderId, CancellationToken cancellationToken = default)
