@@ -7,5 +7,6 @@ public sealed class JwtOptions
     public string Key { get; init; } = string.Empty;
     public string Issuer { get; init; } = "XeoTechErp.Api";
     public string Audience { get; init; } = "XeoTechErp.Client";
-    public int AccessTokenLifetimeMinutes { get; init; } = 480;
+    public int AccessTokenLifetimeMinutes { get; init; } = 30;
+    public int RefreshTokenLifetimeDays { get; init; } = 7;
 }
