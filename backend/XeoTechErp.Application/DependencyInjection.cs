@@ -1,13 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
+using XeoTechErp.Application.Common;
+using XeoTechErp.Application.Contracts.Orders;
+using XeoTechErp.Application.CQRS;
 using XeoTechErp.Application.Features.Finance;
 using XeoTechErp.Application.Features.Orders.Commands.CreateOrder;
 using XeoTechErp.Application.Features.Orders.Queries.GetOrder;
 using XeoTechErp.Application.Features.Orders.Queries.GetOrders;
 using XeoTechErp.Application.Features.Quotes;
 using XeoTechErp.Application.Services;
-using XeoTechErp.Application.CQRS;
-using XeoTechErp.Application.Contracts.Orders;
-using XeoTechErp.Application.Common;
 
 namespace XeoTechErp.Application;
 
