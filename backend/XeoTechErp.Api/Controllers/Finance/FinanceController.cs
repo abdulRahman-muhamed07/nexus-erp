@@ -1,0 +1,8 @@
+using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;using XeoTechErp.Api.Data;using XeoTechErp.Api.Models;
+namespace XeoTechErp.Api.Controllers.Finance;
+[ApiController,Route("api/finance"),Authorize]
+public class FinanceController(XeoTechDbContext db):ControllerBase{
+[HttpGet("summary")]public async Task<IActionResult> Summary(){var revenue=await db.Orders.Where(x=>x.Status!=OrderStatus.Cancelled).SumAsync(x=>(decimal?)x.Total)??0;var receivable=await db.Invoices.Where(x=>x.Status!=InvoiceStatus.Paid).SumAsync(x=>(decimal?)x.Amount)??0;var paid=await db.Payments.SumAsync(x=>(decimal?)x.Amount)??0;var returns=await db.Returns.SumAsync(x=>(decimal?)x.Amount)??0;return Ok(new{revenue,collections=paid,receivables=receivable,refunds=returns,netRevenue=revenue-returns,profit=revenue-returns-paid});}
+[HttpGet("ar-aging")]public async Task<IActionResult> Aging(){var now=DateTime.UtcNow;var rows=await db.Invoices.Where(x=>x.Status!=InvoiceStatus.Paid).Select(x=>new{x.Id,x.Amount,x.Due}).ToListAsync();var result=rows.GroupBy(x=>x.Due>=now?"Current":(now-x.Due).TotalDays<=30?"1-30":(now-x.Due).TotalDays<=60?"31-60":(now-x.Due).TotalDays<=90?"61-90":"90+").Select(g=>new{bucket=g.Key,total=g.Sum(x=>x.Amount),count=g.Count()});return Ok(result);}
+[HttpGet("budget-vs-actual")]public async Task<IActionResult> Budget(){var budgets=await db.Budgets.AsNoTracking().ToListAsync();return Ok(budgets.Select(x=>new{category=x.Category,budget=x.MonthlyAmount,actual=0m,variance=x.MonthlyAmount}));}
+}
