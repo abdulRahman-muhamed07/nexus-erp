@@ -1,8 +1,8 @@
 using AutoMapper;
 using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Abstractions.Messaging;
 using XeoTechErp.Application.Common;
-using XeoTechErp.Application.Contracts.Orders;
-using XeoTechErp.Application.CQRS;
+using XeoTechErp.Application.Features.Orders.Common;
 using XeoTechErp.Domain.Entities;
 using XeoTechErp.Domain.Exceptions;
 
