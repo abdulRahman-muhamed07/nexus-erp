@@ -1,5 +1,6 @@
 using AutoMapper;
 using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Products;
 using XeoTechErp.Domain.Entities;
