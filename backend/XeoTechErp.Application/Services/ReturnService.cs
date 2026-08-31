@@ -24,7 +24,10 @@ public sealed class ReturnService(
 
         var order = await repository.GetDeliveredOrderWithItemsAsync(request.OrderId, cancellationToken);
         if (order is null) return Result<ReturnResponse>.Failure("ORDER_NOT_FOUND", "A delivered order was not found.");
-        if (request.Amount > order.Total) return Result<ReturnResponse>.Failure("RETURN_INVALID", "Refund cannot exceed the order total.");
+        if (await repository.ExistsForOrderAsync(order.Id, cancellationToken))
+            return Result<ReturnResponse>.Failure("RETURN_EXISTS", "This order has already been returned.");
+        if (request.Amount != order.Total)
+            return Result<ReturnResponse>.Failure("PARTIAL_RETURN_UNSUPPORTED", "Only full-order returns are supported.");
 
         var result = new Return
         {
@@ -42,7 +45,7 @@ public sealed class ReturnService(
                 var product = await products.GetByIdAsync(item.ProductId, cancellationToken);
                 if (product is null) continue;
                 product.IncreaseStock(item.Qty);
-                inventory.AddMovement(new StockMovement { ProductId = product.Id, ProductName = product.Name, Delta = item.Qty, Reason = "Return", Reference = $"Return:{result.Id}" });
+                inventory.AddMovement(new StockMovement { ProductId = product.Id, ProductName = product.Name, Delta = item.Qty, Reason = "Return", Reference = $"Order:{order.Id}" });
             }
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }, cancellationToken);
