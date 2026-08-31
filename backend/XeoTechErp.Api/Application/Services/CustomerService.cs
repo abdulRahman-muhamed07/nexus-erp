@@ -1,8 +1,8 @@
 using XeoTechErp.Api.Application.Abstractions;
-using XeoTechErp.Api.DTOs;
 using XeoTechErp.Api.Domain.Entities;
+using XeoTechErp.Api.DTOs;
 
-namespace XeoTechErp.Api.Services;
+namespace XeoTechErp.Api.Application.Services;
 
 public interface ICustomerService
 {
@@ -43,7 +43,6 @@ public sealed class CustomerService(ICustomerRepository repository, IUnitOfWork 
 
         await repository.AddAsync(customer, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-
         return Map(customer);
     }
 
