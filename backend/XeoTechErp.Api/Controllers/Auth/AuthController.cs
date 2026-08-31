@@ -1,11 +1,17 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using XeoTechErp.Api.Application.Services;
 using XeoTechErp.Api.DTOs;
-using XeoTechErp.Api.Services;
+
 namespace XeoTechErp.Api.Controllers;
+
 [ApiController]
 [Route("api/auth")]
-public class AuthController(IAuthService auth):ControllerBase
+public sealed class AuthController(IAuthService auth) : ControllerBase
 {
- [AllowAnonymous,HttpPost("login")] public async Task<IActionResult> Login(LoginRequest request)=> (await auth.LoginAsync(request)) is { } r?Ok(r):Unauthorized(new{error="Invalid email or password."});
+    [AllowAnonymous, HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken) =>
+        (await auth.LoginAsync(request, cancellationToken)) is { } response
+            ? Ok(response)
+            : Unauthorized(new { error = "Invalid email or password." });
 }
