@@ -1,7 +1,24 @@
-using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;using XeoTechErp.Api.Data;using XeoTechErp.Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using XeoTechErp.Application.Contracts.Returns;
+using XeoTechErp.Application.Services;
+
 namespace XeoTechErp.Api.Controllers.Returns;
-[ApiController,Route("api/returns"),Authorize]
-public class ReturnsController(XeoTechDbContext db):ControllerBase{
-[HttpGet]public async Task<IActionResult> Get()=>Ok(await db.Returns.AsNoTracking().Include(x=>x.Order).OrderByDescending(x=>x.Date).ToListAsync());
-[HttpPost]public async Task<IActionResult> Create(Return model){await using var tx=await db.Database.BeginTransactionAsync();var o=await db.Orders.Include(x=>x.Items).FirstOrDefaultAsync(x=>x.Id==model.OrderId);if(o is null)return NotFound();if(o.Status!=OrderStatus.Delivered)return Conflict(new{error="Only delivered orders can be returned."});if(model.Amount<=0||model.Amount>o.Total)return BadRequest(new{error="Invalid refund amount."});model.Id=0;model.Date=DateTime.UtcNow;db.Returns.Add(model);foreach(var item in o.Items){var p=await db.Products.FindAsync(item.ProductId);if(p is not null){p.Stock+=item.Qty;db.StockMovements.Add(new StockMovement{ProductId=p.Id,ProductName=p.Name,Delta=item.Qty,Reason="Return",Reference=$"Return:{model.Id}"});}}await db.SaveChangesAsync();await tx.CommitAsync();return Ok(model);}
+
+[ApiController]
+[Route("api/returns")]
+[Authorize]
+public sealed class ReturnsController(IReturnService service) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
+        => Ok(await service.GetAsync(cancellationToken));
+
+    [Authorize(Policy = "ManagerOrAdmin")]
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateReturnRequest request, CancellationToken cancellationToken)
+    {
+        var result = await service.CreateAsync(request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
 }
