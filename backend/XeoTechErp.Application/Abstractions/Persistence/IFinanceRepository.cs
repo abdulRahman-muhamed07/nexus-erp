@@ -1,4 +1,8 @@
-using XeoTechErp.Application.Features.Finance;
+using XeoTechErp.Application.Features.Finance.Assets;
+using XeoTechErp.Application.Features.Finance.Budgets;
+using XeoTechErp.Application.Features.Finance.Dashboard;
+using XeoTechErp.Application.Features.Finance.Expenses;
+using XeoTechErp.Application.Features.Finance.Invoices;
 using XeoTechErp.Domain.Entities;
 using XeoTechErp.Domain.Enums;
 
