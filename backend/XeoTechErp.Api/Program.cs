@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 using XeoTechErp.Application;
 using XeoTechErp.Infrastructure;
-using XeoTechErp.Api.Infrastructure;
 using XeoTechErp.Api.Middleware;
-using XeoTechErp.Api.Data;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,47 +14,65 @@ builder.Services.AddOpenApi();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// Temporary compatibility registration for the remaining legacy ERP endpoints.
-// Core Product/Customer/Order/Inventory/Dashboard/Auth flows use the new layers.
-builder.Services.AddDbContext<XeoTechDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=xeotech-erp.db"));
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("A real Jwt:Key must be provided through configuration or environment variables.");
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("Jwt:Key is required.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "XeoTechErp.Api";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "XeoTechErp.Client";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+        options.SaveToken = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(1)
+            ClockSkew = TimeSpan.FromSeconds(30)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrator"));
+    options.AddPolicy("ManagerOrAdmin", policy => policy.RequireRole("Manager", "Administrator"));
+});
 
 var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-// Keep the existing database schema available during the module-by-module migration.
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<XeoTechDbContext>();
-    db.Database.Migrate();
-    await DatabaseSeeder.SeedAsync(db);
-}
 
 app.Run();
 
