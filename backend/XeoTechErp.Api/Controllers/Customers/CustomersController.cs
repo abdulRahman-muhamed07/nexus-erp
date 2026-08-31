@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Contracts.Customers;
-using XeoTechErp.Application.Services;
 
 namespace XeoTechErp.Api.Controllers.Customers;
 
