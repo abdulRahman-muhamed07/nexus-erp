@@ -7,10 +7,17 @@ namespace XeoTechErp.Api.Infrastructure;
 
 public static class DatabaseSeeder
 {
-    public static async Task SeedAsync(XeoTechDbContext db)
+    public static async Task SeedAsync(XeoTechDbContext db, IConfiguration configuration, bool isDevelopment)
     {
+        if (!isDevelopment)
+            return;
+
         if (!await db.Users.AnyAsync())
         {
+            var password = configuration["SeedAdmin:Password"];
+            if (string.IsNullOrWhiteSpace(password))
+                throw new InvalidOperationException("SeedAdmin:Password must be configured for development seeding.");
+
             var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
             var user = new User
             {
@@ -19,7 +26,7 @@ public static class DatabaseSeeder
                 Role = Role.Administrator
             };
 
-            user.PasswordHash = hasher.HashPassword(user, "admin123");
+            user.PasswordHash = hasher.HashPassword(user, password);
             db.Users.Add(user);
         }
 
