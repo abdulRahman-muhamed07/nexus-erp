@@ -3,6 +3,7 @@ using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Common.Models;
 using XeoTechErp.Domain.Entities;
+using XeoTechErp.Domain.Exceptions;
 
 namespace XeoTechErp.Application.Services;
 
@@ -37,9 +38,12 @@ public sealed class InventoryService(
 
         try
         {
-            product.AdjustStock(delta);
+            if (delta > 0)
+                product.IncreaseStock(delta);
+            else
+                product.DecreaseStock(Math.Abs(delta));
         }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        catch (DomainRuleException ex)
         {
             return Result.Failure("INVALID_STOCK_ADJUSTMENT", ex.Message);
         }
