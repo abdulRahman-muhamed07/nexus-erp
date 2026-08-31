@@ -23,18 +23,29 @@ public sealed class ProductService(IProductRepository repository, IUnitOfWork un
 
     public async Task<Result<ProductDto>> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Sku) || string.IsNullOrWhiteSpace(request.Name))
-            return Result<ProductDto>.Failure("PRODUCT_INVALID", "SKU and product name are required.");
-        if (request.Price < 0 || request.Cost < 0 || request.Stock < 0 || request.ReorderLevel < 0)
-            return Result<ProductDto>.Failure("PRODUCT_INVALID", "Price, cost, stock and reorder level cannot be negative.");
-        var sku = request.Sku.Trim();
-        if (await repository.ExistsBySkuAsync(sku, cancellationToken))
+        if (await repository.ExistsBySkuAsync(request.Sku?.Trim() ?? string.Empty, cancellationToken))
             return Result<ProductDto>.Failure("SKU_EXISTS", "SKU already exists.");
 
-        var product = new Product { Sku = sku, Name = request.Name.Trim(), Category = request.Category?.Trim() ?? string.Empty, Price = request.Price, Cost = request.Cost, Stock = request.Stock, ReorderLevel = request.ReorderLevel, SupplierId = request.SupplierId };
-        repository.Add(product);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return Result<ProductDto>.Success(ToDto(product));
+        try
+        {
+            var product = new Product(
+                request.Sku,
+                request.Name,
+                request.Price,
+                request.Cost,
+                request.Stock,
+                request.ReorderLevel,
+                request.Category,
+                request.SupplierId);
+
+            repository.Add(product);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            return Result<ProductDto>.Success(ToDto(product));
+        }
+        catch (XeoTechErp.Domain.Exceptions.DomainRuleException ex)
+        {
+            return Result<ProductDto>.Failure("PRODUCT_INVALID", ex.Message);
+        }
     }
 
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
