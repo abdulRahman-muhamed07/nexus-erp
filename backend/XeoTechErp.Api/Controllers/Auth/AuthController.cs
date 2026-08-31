@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Contracts.Auth;
-using XeoTechErp.Application.Services;
 
 namespace XeoTechErp.Api.Controllers.Auth;
 
