@@ -1,19 +1,70 @@
-using Microsoft.EntityFrameworkCore;
-using XeoTechErp.Api.Data;
+using XeoTechErp.Api.Application.Abstractions;
 using XeoTechErp.Api.DTOs;
-using XeoTechErp.Api.Models;
+using XeoTechErp.Api.Domain.Entities;
 
 namespace XeoTechErp.Api.Services;
-public interface IProductService { Task<List<ProductDto>> GetAsync(string? search); Task<ProductDto?> GetAsync(int id); Task<ProductDto> CreateAsync(CreateProductRequest r); Task<bool> DeleteAsync(int id); }
-public sealed class ProductService(XeoTechDbContext db) : IProductService
+
+public interface IProductService
 {
-    public async Task<List<ProductDto>> GetAsync(string? search) => await db.Products.AsNoTracking().Where(p => string.IsNullOrWhiteSpace(search) || p.Name.Contains(search!) || p.Sku.Contains(search!)).OrderBy(p => p.Name).Select(p => new ProductDto(p.Id,p.Sku,p.Name,p.Category,p.Price,p.Cost,p.Stock,p.ReorderLevel,p.SupplierId)).ToListAsync();
-    public async Task<ProductDto?> GetAsync(int id) => await db.Products.AsNoTracking().Where(p=>p.Id==id).Select(p=>new ProductDto(p.Id,p.Sku,p.Name,p.Category,p.Price,p.Cost,p.Stock,p.ReorderLevel,p.SupplierId)).SingleOrDefaultAsync();
-    public async Task<ProductDto> CreateAsync(CreateProductRequest r)
+    Task<IReadOnlyList<ProductDto>> GetAsync(string? search, CancellationToken cancellationToken = default);
+    Task<ProductDto?> GetAsync(int id, CancellationToken cancellationToken = default);
+    Task<ProductDto> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+}
+
+public sealed class ProductService(IProductRepository repository, IUnitOfWork unitOfWork) : IProductService
+{
+    public async Task<IReadOnlyList<ProductDto>> GetAsync(string? search, CancellationToken cancellationToken = default)
     {
-        if (await db.Products.AnyAsync(p=>p.Sku==r.Sku)) throw new InvalidOperationException("SKU already exists.");
-        var p=new Product{Sku=r.Sku.Trim(),Name=r.Name.Trim(),Category=r.Category?.Trim()??"",Price=r.Price,Cost=r.Cost,Stock=r.Stock,ReorderLevel=r.ReorderLevel,SupplierId=r.SupplierId};
-        db.Products.Add(p); await db.SaveChangesAsync(); return new ProductDto(p.Id,p.Sku,p.Name,p.Category,p.Price,p.Cost,p.Stock,p.ReorderLevel,p.SupplierId);
+        var products = await repository.SearchAsync(search, cancellationToken);
+        return products.Select(Map).ToList();
     }
-    public async Task<bool> DeleteAsync(int id){var p=await db.Products.FindAsync(id);if(p is null)return false;db.Products.Remove(p);await db.SaveChangesAsync();return true;}
+
+    public async Task<ProductDto?> GetAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var product = await repository.GetByIdAsync(id, cancellationToken);
+        return product is null ? null : Map(product);
+    }
+
+    public async Task<ProductDto> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Sku);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Name);
+
+        var sku = request.Sku.Trim();
+        if (await repository.ExistsBySkuAsync(sku, cancellationToken))
+            throw new InvalidOperationException("SKU already exists.");
+
+        var product = new Product
+        {
+            Sku = sku,
+            Name = request.Name.Trim(),
+            Category = request.Category?.Trim() ?? string.Empty,
+            Price = request.Price,
+            Cost = request.Cost,
+            Stock = request.Stock,
+            ReorderLevel = request.ReorderLevel,
+            SupplierId = request.SupplierId
+        };
+
+        await repository.AddAsync(product, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return Map(product);
+    }
+
+    public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var product = await repository.GetByIdAsync(id, cancellationToken);
+        if (product is null)
+            return false;
+
+        repository.Remove(product);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private static ProductDto Map(Product product) =>
+        new(product.Id, product.Sku, product.Name, product.Category, product.Price, product.Cost,
+            product.Stock, product.ReorderLevel, product.SupplierId);
 }
