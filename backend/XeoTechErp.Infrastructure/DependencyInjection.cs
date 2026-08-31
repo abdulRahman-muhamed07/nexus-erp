@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IFinanceRepository, FinanceRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
@@ -40,7 +41,9 @@ public static class DependencyInjection
         services.AddScoped<IReturnRepository, ReturnRepository>();
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
+        services.AddScoped<IPasswordHasher>(sp => sp.GetRequiredService<PasswordVerifier>());
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<IAuthenticationSettings, AuthenticationSettings>();
         return services;
     }
 }
