@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFinanceRepository, FinanceRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
+        services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
         services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtKey, jwtIssuer, jwtAudience));
 
