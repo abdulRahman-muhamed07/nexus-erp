@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using XeoTechErp.Application.Abstractions.Messaging;
 using XeoTechErp.Application.Common;
-using XeoTechErp.Application.Contracts.Orders;
-using XeoTechErp.Application.CQRS;
 using XeoTechErp.Application.Features.Orders.Commands.CreateOrder;
+using XeoTechErp.Application.Features.Orders.Common;
 using XeoTechErp.Application.Features.Orders.Queries.GetOrder;
 using XeoTechErp.Application.Features.Orders.Queries.GetOrders;
 
