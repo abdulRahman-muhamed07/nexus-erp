@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using XeoTechErp.Application.Features.Finance;
+using XeoTechErp.Application.Features.Quotes;
 using XeoTechErp.Application.Services;
 
 namespace XeoTechErp.Application;
@@ -15,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IFinanceService, FinanceService>();
+        services.AddScoped<IQuoteService, QuoteService>();
         return services;
     }
 }
