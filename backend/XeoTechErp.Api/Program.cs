@@ -52,4 +52,5 @@ app.MapControllers();
 
 app.Run();
 
+// Keep Program public for integration-test hosting.
 public partial class Program;
