@@ -32,9 +32,15 @@ public static class DependencyInjection
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IAppConfigRepository, AppConfigRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IAuditRepository, AuditRepository>();
+        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+        services.AddScoped<IReturnRepository, ReturnRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
         services.AddSingleton<ITokenService, JwtTokenService>();
-
         return services;
     }
 }
