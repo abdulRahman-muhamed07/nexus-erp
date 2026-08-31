@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using XeoTechErp.Application.Abstractions.Authentication;
 using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Auth;
 using XeoTechErp.Domain.Entities;
