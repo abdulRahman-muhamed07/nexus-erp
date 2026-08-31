@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using XeoTechErp.Application.Abstractions.Authentication;
 using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Infrastructure.Authentication;
+using XeoTechErp.Infrastructure.HealthChecks;
 using XeoTechErp.Infrastructure.Persistence;
 using XeoTechErp.Infrastructure.Persistence.Repositories;
 
@@ -24,6 +25,8 @@ public static class DependencyInjection
         var jwtAudience = configuration["Jwt:Audience"] ?? "XeoTechErp.Client";
 
         services.AddDbContext<XeoTechDbContext>(options => options.UseSqlite(connectionString));
+        services.AddInfrastructureHealthChecks();
+
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
