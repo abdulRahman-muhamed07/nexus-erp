@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IFinanceRepository, FinanceRepository>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
         services.AddSingleton<ITokenService>(_ => new JwtTokenService(configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is required.")));
         return services;
