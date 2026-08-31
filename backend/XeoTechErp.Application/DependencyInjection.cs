@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Orders;
@@ -7,6 +8,7 @@ using XeoTechErp.Application.Features.Orders.Commands.CreateOrder;
 using XeoTechErp.Application.Features.Orders.Queries.GetOrder;
 using XeoTechErp.Application.Features.Orders.Queries.GetOrders;
 using XeoTechErp.Application.Features.Quotes;
+using XeoTechErp.Application.Mapping;
 using XeoTechErp.Application.Services;
 
 namespace XeoTechErp.Application;
@@ -15,6 +17,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddAutoMapper(typeof(ApplicationMappingProfile).Assembly);
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICustomerService, CustomerService>();
