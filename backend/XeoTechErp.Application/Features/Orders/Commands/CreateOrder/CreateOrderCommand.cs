@@ -1,5 +1,5 @@
+using XeoTechErp.Application.Abstractions.Messaging;
 using XeoTechErp.Application.Common;
-using XeoTechErp.Application.CQRS;
 using XeoTechErp.Application.Features.Orders.Common;
 
 namespace XeoTechErp.Application.Features.Orders.Commands.CreateOrder;
