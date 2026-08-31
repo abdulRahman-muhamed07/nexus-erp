@@ -13,7 +13,7 @@ public interface IQuoteService
     Task<Order> ConvertAsync(int id, CancellationToken cancellationToken = default);
 }
 
-public sealed class QuoteService(IQuoteRepository repository, IUnitOfWork unitOfWork) : IQuoteService
+public sealed class QuoteService(IQuoteRepository repository, IOrderRepository orderRepository, IUnitOfWork unitOfWork) : IQuoteService
 {
     public async Task<PagedQuotesDto> GetAsync(QuoteStatus? status, int page, int pageSize, CancellationToken cancellationToken = default)
     {
@@ -62,9 +62,7 @@ public sealed class QuoteService(IQuoteRepository repository, IUnitOfWork unitOf
         var order = new Order { CustomerId = quote.CustomerId, QuoteId = quote.Id, Subtotal = quote.Subtotal, Tax = quote.Tax, Shipping = quote.Shipping, DiscountPct = quote.DiscountPct, Discount = quote.Subtotal * quote.DiscountPct / 100m, Total = quote.Total };
         foreach (var item in quote.Items) order.Items.Add(new OrderItem { ProductId = item.ProductId, Name = item.Name, Qty = item.Qty, Price = item.Price });
         quote.Status = QuoteStatus.Converted;
-        // Conversion is persisted atomically by the same EF Core unit of work.
-        var db = repository;
-        repository.Add(quote);
+        orderRepository.Add(order);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return order;
     }
