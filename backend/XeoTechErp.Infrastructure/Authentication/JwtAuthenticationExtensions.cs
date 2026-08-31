@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using XeoTechErp.Infrastructure.Authentication;
 
 namespace XeoTechErp.Infrastructure.Authentication;
 
@@ -20,7 +21,8 @@ public static class JwtAuthenticationExtensions
             .Validate(options => !string.IsNullOrWhiteSpace(options.Key), "Jwt:Key is required.")
             .Validate(options => options.Key.Length >= 32, "Jwt:Key must be at least 32 characters.")
             .Validate(options => !options.Key.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase), "Jwt:Key must not use a placeholder value.")
-            .Validate(options => options.AccessTokenLifetimeMinutes is > 0 and <= 1440, "Jwt:AccessTokenLifetimeMinutes must be between 1 and 1440 minutes.")
+            .Validate(options => options.AccessTokenLifetimeMinutes is > 0 and <= 60, "Jwt:AccessTokenLifetimeMinutes must be between 1 and 60 minutes.")
+            .Validate(options => options.RefreshTokenLifetimeDays is >= 1 and <= 30, "Jwt:RefreshTokenLifetimeDays must be between 1 and 30 days.")
             .ValidateOnStart();
 
         var jwt = section.Get<JwtOptions>() ?? new JwtOptions();
