@@ -13,5 +13,8 @@ public sealed class ReturnRepository(XeoTechDbContext db) : IReturnRepository
     public Task<Order?> GetDeliveredOrderWithItemsAsync(int orderId, CancellationToken cancellationToken = default)
         => db.Orders.Include(x => x.Items).FirstOrDefaultAsync(x => x.Id == orderId && x.Status == OrderStatus.Delivered, cancellationToken);
 
+    public Task<bool> ExistsForOrderAsync(int orderId, CancellationToken cancellationToken = default)
+        => db.Returns.AnyAsync(x => x.OrderId == orderId, cancellationToken);
+
     public void Add(Return @return) => db.Returns.Add(@return);
 }
