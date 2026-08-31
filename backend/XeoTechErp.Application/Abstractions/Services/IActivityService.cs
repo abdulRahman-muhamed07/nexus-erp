@@ -1,6 +1,6 @@
 using XeoTechErp.Application.Contracts.Activities;
 
-namespace XeoTechErp.Application.Services;
+namespace XeoTechErp.Application.Abstractions.Services;
 
 public interface IActivityService
 {
