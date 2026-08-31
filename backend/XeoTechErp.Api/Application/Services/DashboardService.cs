@@ -1,9 +1,14 @@
-using Microsoft.EntityFrameworkCore;
-using XeoTechErp.Api.Data;
-using XeoTechErp.Api.Models;
-namespace XeoTechErp.Api.Services;
-public interface IDashboardService { Task<object> GetAsync(); }
-public sealed class DashboardService(XeoTechDbContext db):IDashboardService
+using XeoTechErp.Api.Application.Abstractions;
+
+namespace XeoTechErp.Api.Application.Services;
+
+public interface IDashboardService
 {
- public async Task<object> GetAsync()=>new { revenue=await db.Orders.Where(o=>o.Status!=OrderStatus.Cancelled).SumAsync(o=>(decimal?)o.Total)??0m, orders=await db.Orders.CountAsync(), customers=await db.Customers.CountAsync(), products=await db.Products.CountAsync(), lowStock=await db.Products.CountAsync(p=>p.Stock<=p.ReorderLevel) };
+    Task<object> GetAsync(CancellationToken cancellationToken = default);
+}
+
+public sealed class DashboardService(IDashboardRepository repository) : IDashboardService
+{
+    public Task<object> GetAsync(CancellationToken cancellationToken = default) =>
+        repository.GetAsync(cancellationToken);
 }
