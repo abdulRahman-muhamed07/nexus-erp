@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using XeoTechErp.Api.Application.Services;
+using XeoTechErp.Application.Services;
 
-namespace XeoTechErp.Api.Controllers;
+namespace XeoTechErp.Api.Controllers.Dashboard;
 
-[ApiController, Authorize, Route("api/dashboard")]
+[ApiController]
+[Authorize]
+[Route("api/dashboard")]
 public sealed class DashboardController(IDashboardService service) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> Get(CancellationToken cancellationToken) =>
-        Ok(await service.GetAsync(cancellationToken));
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
+        => Ok(await service.GetAsync(cancellationToken));
 }

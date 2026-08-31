@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using XeoTechErp.Api.Application;
-using XeoTechErp.Api.Data;
+using XeoTechErp.Application;
+using XeoTechErp.Infrastructure;
 using XeoTechErp.Api.Infrastructure;
 using XeoTechErp.Api.Middleware;
 
@@ -14,7 +14,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+    ?? throw new InvalidOperationException("Jwt:Key is required.");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -41,13 +41,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<XeoTechDbContext>();
-    db.Database.Migrate();
-    await DatabaseSeeder.SeedAsync(db);
-}
 
 app.Run();
 

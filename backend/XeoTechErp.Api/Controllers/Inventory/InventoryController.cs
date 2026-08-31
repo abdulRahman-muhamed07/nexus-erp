@@ -1,21 +1,25 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using XeoTechErp.Api.Application.Services;
+using XeoTechErp.Application.Services;
 
-namespace XeoTechErp.Api.Controllers;
+namespace XeoTechErp.Api.Controllers.Inventory;
 
-[ApiController, Authorize, Route("api/inventory")]
+[ApiController]
+[Authorize]
+[Route("api/inventory")]
 public sealed class InventoryController(IInventoryService service) : ControllerBase
 {
     [HttpGet("summary")]
-    public async Task<IActionResult> Summary(CancellationToken cancellationToken) =>
-        Ok(await service.GetSummaryAsync(cancellationToken));
+    public async Task<IActionResult> Summary(CancellationToken cancellationToken)
+        => Ok(await service.GetSummaryAsync(cancellationToken));
 
-    [Authorize(Roles = "Manager,Administrator"), HttpPost("adjust")]
+    [Authorize(Roles = "Manager,Administrator")]
+    [HttpPost("adjust")]
     public async Task<IActionResult> Adjust(int productId, int delta, string reason = "Manual Adjustment", CancellationToken cancellationToken = default)
     {
         var actor = User.FindFirstValue(ClaimTypes.Email) ?? "system";
-        return await service.AdjustAsync(productId, delta, reason, actor, cancellationToken) ? Ok() : NotFound();
+        var result = await service.AdjustAsync(productId, delta, reason, actor, cancellationToken);
+        return result.IsSuccess ? Ok() : BadRequest(result.Error);
     }
 }
