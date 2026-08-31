@@ -1,7 +1,31 @@
 # Architecture status
 
-The solution contains independent Domain, Application, Infrastructure, API and Tests projects. The core authentication, product, customer, order, inventory, dashboard, activity and payment flows use dependency-inverted Application abstractions with Infrastructure implementations.
+The backend is organized as independent Domain, Application, Infrastructure, API and Tests projects.
 
-The API no longer contains the old Application layer. JWT configuration is strongly typed and owned by Infrastructure, and database readiness is exposed through infrastructure health checks.
+## Dependency direction
 
-The remaining legacy API Domain model and a small number of older ERP endpoints still need migration before the presentation layer can be considered completely free of legacy compatibility code. These are intentionally kept until their routes are migrated so the existing API surface is not broken.
+`API -> Application -> Domain`
+
+`Infrastructure -> Application + Domain`
+
+The Application layer exposes abstractions for persistence and external concerns. Infrastructure contains EF Core, SQLite, repositories, authentication implementations and health checks. The API is limited to HTTP concerns, middleware, configuration composition and controllers.
+
+## Application boundaries
+
+Application contracts use explicit request and response DTOs. AutoMapper owns entity-to-contract mapping. Business rules are enforced by Domain entities, while Application handlers/services orchestrate use cases and transactions.
+
+## Persistence
+
+`XeoTechDbContext`, EF Core mappings, repositories, Unit of Work and migrations belong to `XeoTechErp.Infrastructure/Persistence`.
+
+## Security
+
+JWT options are validated from secure configuration, tokens validate issuer, audience and lifetime, login is rate limited, and authorization policies are defined for administrator/manager operations. Secrets are not committed to the repository.
+
+## Testing
+
+The solution keeps unit, mapping and architecture-focused tests in `XeoTechErp.Tests`.
+
+## Design rule
+
+The API must never depend directly on EF Core or Domain persistence models. New features should be added as application use cases with dedicated contracts, abstractions and infrastructure implementations.
