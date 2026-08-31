@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IFinanceRepository, FinanceRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
+        services.AddScoped<IAppConfigRepository, AppConfigRepository>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
         services.AddSingleton<ITokenService, JwtTokenService>();
 
