@@ -1,5 +1,5 @@
-using XeoTechErp.Application.Contracts.Orders;
-using XeoTechErp.Application.CQRS;
+using XeoTechErp.Application.Abstractions.Messaging;
+using XeoTechErp.Application.Features.Orders.Common;
 
 namespace XeoTechErp.Application.Features.Orders.Queries.GetOrders;
 
