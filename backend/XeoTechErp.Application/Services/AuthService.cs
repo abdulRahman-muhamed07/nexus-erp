@@ -15,11 +15,10 @@ public sealed class AuthService(
     IPasswordVerifier passwordVerifier,
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
+    IAuthenticationSettings authenticationSettings,
     IUnitOfWork unitOfWork) : IAuthService
 {
-    public async Task<Result<AuthResponse>> RegisterAsync(
-        RegisterRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
         var email = NormalizeEmail(request.Email);
         var displayName = request.DisplayName?.Trim() ?? string.Empty;
@@ -47,9 +46,7 @@ public sealed class AuthService(
         return await IssueTokensAsync(user, cancellationToken);
     }
 
-    public async Task<Result<AuthResponse>> LoginAsync(
-        LoginRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<Result<AuthResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         var email = NormalizeEmail(request.Email);
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(request.Password))
@@ -62,30 +59,20 @@ public sealed class AuthService(
         return await IssueTokensAsync(user, cancellationToken);
     }
 
-    public async Task<Result<AuthResponse>> RefreshAsync(
-        RefreshTokenRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<Result<AuthResponse>> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
             return Result<AuthResponse>.Failure("INVALID_REFRESH_TOKEN", "Invalid refresh token.");
 
-        var tokenHash = HashToken(request.RefreshToken);
-        var stored = await refreshTokens.GetActiveAsync(tokenHash, cancellationToken);
+        var stored = await refreshTokens.GetActiveAsync(HashToken(request.RefreshToken), cancellationToken);
         if (stored?.User is null)
             return Result<AuthResponse>.Failure("INVALID_REFRESH_TOKEN", "Invalid or expired refresh token.");
 
         stored.RevokedAt = DateTime.UtcNow;
-        var result = await IssueTokensAsync(stored.User, cancellationToken);
-        if (!result.IsSuccess)
-            return result;
-
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-        return result;
+        return await IssueTokensAsync(stored.User, cancellationToken);
     }
 
-    public async Task<Result> LogoutAsync(
-        string refreshToken,
-        CancellationToken cancellationToken = default)
+    public async Task<Result> LogoutAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
             return Result.Failure("INVALID_REFRESH_TOKEN", "Refresh token is required.");
@@ -99,10 +86,7 @@ public sealed class AuthService(
         return Result.Success();
     }
 
-    public async Task<Result> UpdateRoleAsync(
-        int userId,
-        UpdateRoleRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateRoleAsync(int userId, UpdateRoleRequest request, CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(request.Role))
             return Result.Failure("INVALID_ROLE", "Unsupported role.");
@@ -127,7 +111,7 @@ public sealed class AuthService(
         {
             UserId = user.Id,
             TokenHash = HashToken(rawRefreshToken),
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.AddDays(authenticationSettings.RefreshTokenLifetimeDays)
         };
 
         refreshTokens.Add(refreshToken);
@@ -144,8 +128,7 @@ public sealed class AuthService(
             user.Role));
     }
 
-    private static string NormalizeEmail(string? email)
-        => email?.Trim().ToLowerInvariant() ?? string.Empty;
+    private static string NormalizeEmail(string? email) => email?.Trim().ToLowerInvariant() ?? string.Empty;
 
     private static string HashToken(string token)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
