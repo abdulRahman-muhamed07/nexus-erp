@@ -9,7 +9,7 @@ namespace XeoTechErp.Application.Services;
 public sealed class CustomerService(ICustomerRepository repository, IUnitOfWork unitOfWork, IMapper mapper) : ICustomerService
 {
     public async Task<IReadOnlyList<CustomerDto>> GetAsync(string? search, CancellationToken cancellationToken = default)
-        => mapper.Map<List<CustomerDto>>(await repository.SearchAsync(search, cancellationToken));
+        => mapper.Map<IReadOnlyList<CustomerDto>>(await repository.SearchAsync(search, cancellationToken));
 
     public async Task<CustomerDto?> GetAsync(int id, CancellationToken cancellationToken = default)
         => await repository.GetByIdAsync(id, cancellationToken) is { } customer ? mapper.Map<CustomerDto>(customer) : null;
