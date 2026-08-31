@@ -1,10 +1,44 @@
-using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;using XeoTechErp.Api.Data;using XeoTechErp.Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using XeoTechErp.Application.Contracts.Suppliers;
+using XeoTechErp.Application.Services;
+
 namespace XeoTechErp.Api.Controllers.Suppliers;
-[ApiController,Route("api/suppliers"),Authorize]
-public class SuppliersController(XeoTechDbContext db):ControllerBase{
-[HttpGet]public async Task<IActionResult> Get([FromQuery]string? search){var q=db.Suppliers.AsNoTracking();if(!string.IsNullOrWhiteSpace(search))q=q.Where(x=>x.Name.Contains(search)||x.Email.Contains(search));return Ok(await q.OrderBy(x=>x.Name).ToListAsync());}
-[HttpGet("{id:int}")]public async Task<IActionResult> GetById(int id)=>Ok(await db.Suppliers.AsNoTracking().Include(x=>x.Products).Include(x=>x.PurchaseOrders).FirstOrDefaultAsync(x=>x.Id==id)??(object)new{error="Supplier not found"});
-[HttpPost]public async Task<IActionResult> Create(Supplier s){if(string.IsNullOrWhiteSpace(s.Name))return BadRequest(new{error="Name is required."});s.Id=0;db.Suppliers.Add(s);await db.SaveChangesAsync();return CreatedAtAction(nameof(GetById),new{id=s.Id},s);}
-[HttpPut("{id:int}")]public async Task<IActionResult> Update(int id,Supplier input){var s=await db.Suppliers.FindAsync(id);if(s is null)return NotFound();s.Name=input.Name;s.Contact=input.Contact;s.Country=input.Country;s.Email=input.Email;s.Phone=input.Phone;s.Rating=input.Rating;await db.SaveChangesAsync();return Ok(s);}
-[HttpDelete("{id:int}")]public async Task<IActionResult> Delete(int id){var s=await db.Suppliers.FindAsync(id);if(s is null)return NotFound();if(await db.Products.AnyAsync(x=>x.SupplierId==id)||await db.PurchaseOrders.AnyAsync(x=>x.SupplierId==id))return Conflict(new{error="Supplier is referenced by existing records."});db.Suppliers.Remove(s);await db.SaveChangesAsync();return NoContent();}
+
+[ApiController]
+[Route("api/suppliers")]
+[Authorize]
+public sealed class SuppliersController(ISupplierService service) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] string? search, CancellationToken cancellationToken)
+        => Ok(await service.GetAsync(search, cancellationToken));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+        => await service.GetByIdAsync(id, cancellationToken) is { } supplier ? Ok(supplier) : NotFound();
+
+    [Authorize(Policy = "ManagerOrAdmin")]
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateSupplierRequest request, CancellationToken cancellationToken)
+    {
+        var result = await service.CreateAsync(request, cancellationToken);
+        return result.IsSuccess ? CreatedAtAction(nameof(GetById), new { id = result.Value!.Id }, result.Value) : BadRequest(result.Error);
+    }
+
+    [Authorize(Policy = "ManagerOrAdmin")]
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, UpdateSupplierRequest request, CancellationToken cancellationToken)
+    {
+        var result = await service.UpdateAsync(id, request, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
+
+    [Authorize(Policy = "AdminOnly")]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var result = await service.DeleteAsync(id, cancellationToken);
+        return result.IsSuccess ? NoContent() : Conflict(result.Error);
+    }
 }
