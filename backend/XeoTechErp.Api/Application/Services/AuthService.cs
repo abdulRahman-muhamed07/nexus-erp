@@ -3,7 +3,7 @@ using XeoTechErp.Api.Application.Abstractions;
 using XeoTechErp.Api.Domain.Entities;
 using XeoTechErp.Api.DTOs;
 
-namespace XeoTechErp.Api.Services;
+namespace XeoTechErp.Api.Application.Services;
 
 public interface IAuthService
 {
