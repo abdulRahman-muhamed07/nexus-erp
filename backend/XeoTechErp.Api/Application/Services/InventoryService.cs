@@ -1,10 +1,39 @@
-using Microsoft.EntityFrameworkCore;
-using XeoTechErp.Api.Data;
-using XeoTechErp.Api.Models;
-namespace XeoTechErp.Api.Services;
-public interface IInventoryService { Task<object> GetSummaryAsync(); Task<bool> AdjustAsync(int productId,int delta,string reason,string actor); }
-public sealed class InventoryService(XeoTechDbContext db):IInventoryService
+using XeoTechErp.Api.Application.Abstractions;
+using XeoTechErp.Api.Domain.Entities;
+
+namespace XeoTechErp.Api.Application.Services;
+
+public interface IInventoryService
 {
- public async Task<object> GetSummaryAsync()=>await db.Products.AsNoTracking().GroupBy(_=>1).Select(g=>new{products=g.Count(),units=g.Sum(x=>x.Stock),inventoryValue=g.Sum(x=>x.Stock*x.Cost),lowStock=g.Count(x=>x.Stock<=x.ReorderLevel)}).FirstOrDefaultAsync()??new{products=0,units=0,inventoryValue=0m,lowStock=0};
- public async Task<bool> AdjustAsync(int productId,int delta,string reason,string actor){var p=await db.Products.FindAsync(productId);if(p is null)return false;if(p.Stock+delta<0)throw new InvalidOperationException("Stock cannot become negative.");p.Stock+=delta;db.StockMovements.Add(new StockMovement{ProductId=p.Id,ProductName=p.Name,Delta=delta,Reason=reason,By=actor});await db.SaveChangesAsync();return true;}
+    Task<object> GetSummaryAsync(CancellationToken cancellationToken = default);
+    Task<bool> AdjustAsync(int productId, int delta, string reason, string actor, CancellationToken cancellationToken = default);
+}
+
+public sealed class InventoryService(IInventoryRepository repository, IUnitOfWork unitOfWork) : IInventoryService
+{
+    public Task<object> GetSummaryAsync(CancellationToken cancellationToken = default) =>
+        repository.GetSummaryAsync(cancellationToken);
+
+    public async Task<bool> AdjustAsync(int productId, int delta, string reason, string actor, CancellationToken cancellationToken = default)
+    {
+        var product = await repository.GetProductAsync(productId, cancellationToken);
+        if (product is null)
+            return false;
+
+        if (product.Stock + delta < 0)
+            throw new InvalidOperationException("Stock cannot become negative.");
+
+        product.Stock += delta;
+        repository.AddMovement(new StockMovement
+        {
+            ProductId = product.Id,
+            ProductName = product.Name,
+            Delta = delta,
+            Reason = reason,
+            By = actor
+        });
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return true;
+    }
 }
