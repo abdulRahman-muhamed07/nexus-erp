@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using XeoTechErp.Application.Services;
+using XeoTechErp.Application.Abstractions.Services;
 
 namespace XeoTechErp.Api.Controllers.Inventory;
 
@@ -16,7 +16,11 @@ public sealed class InventoryController(IInventoryService service) : ControllerB
 
     [Authorize(Roles = "Manager,Administrator")]
     [HttpPost("adjust")]
-    public async Task<IActionResult> Adjust(int productId, int delta, string reason = "Manual Adjustment", CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Adjust(
+        int productId,
+        int delta,
+        string reason = "Manual Adjustment",
+        CancellationToken cancellationToken = default)
     {
         var actor = User.FindFirstValue(ClaimTypes.Email) ?? "system";
         var result = await service.AdjustAsync(productId, delta, reason, actor, cancellationToken);
