@@ -5,11 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>XeoTechErp-LocalDevelopment</UserSecretsId>
   </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\XeoTechErp.Application\XeoTechErp.Application.csproj" />
     <ProjectReference Include="..\XeoTechErp.Infrastructure\XeoTechErp.Infrastructure.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10"><PrivateAssets>all</PrivateAssets><IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets></PackageReference>
   </ItemGroup>
 </Project>
