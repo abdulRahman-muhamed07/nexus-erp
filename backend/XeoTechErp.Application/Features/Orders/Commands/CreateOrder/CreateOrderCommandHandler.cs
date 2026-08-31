@@ -1,5 +1,6 @@
 using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Application.Common;
+using XeoTechErp.Application.Contracts.Orders;
 using XeoTechErp.Application.CQRS;
 using XeoTechErp.Domain.Entities;
 
@@ -37,10 +38,24 @@ public sealed class CreateOrderCommandHandler(
             if (item.Qty <= 0)
                 return Result<OrderDto>.Failure("INVALID_QUANTITY", "Quantity must be greater than zero.");
 
-            order.AddItem(productsById[item.ProductId], item.Qty);
+            try
+            {
+                order.AddItem(productsById[item.ProductId], item.Qty);
+            }
+            catch (XeoTechErp.Domain.Exceptions.DomainRuleException ex)
+            {
+                return Result<OrderDto>.Failure("ORDER_RULE_VIOLATION", ex.Message);
+            }
         }
 
-        order.ApplyDiscount(Math.Clamp(request.DiscountPct, 0m, 100m));
+        try
+        {
+            order.ApplyDiscount(request.DiscountPct);
+        }
+        catch (XeoTechErp.Domain.Exceptions.DomainRuleException ex)
+        {
+            return Result<OrderDto>.Failure("INVALID_DISCOUNT", ex.Message);
+        }
 
         var taxable = order.Subtotal - order.Discount;
         var tax = Math.Round(taxable * 0.08m, 2);
