@@ -1,4 +1,6 @@
 using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Abstractions.Services;
+using XeoTechErp.Application.Common.Models;
 
 namespace XeoTechErp.Application.Services;
 
