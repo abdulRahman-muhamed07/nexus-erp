@@ -7,5 +7,7 @@ namespace XeoTechErp.Infrastructure.Persistence.Repositories;
 public sealed class AppConfigRepository(XeoTechDbContext db) : IAppConfigRepository
 {
     public Task<AppConfig?> GetAsync(CancellationToken cancellationToken = default)
-        => db.AppConfig.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        => db.AppConfig.FirstOrDefaultAsync(cancellationToken);
+
+    public void Add(AppConfig config) => db.AppConfig.Add(config);
 }
