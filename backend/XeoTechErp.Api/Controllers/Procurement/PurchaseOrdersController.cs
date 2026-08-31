@@ -1,8 +1,33 @@
-using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;using XeoTechErp.Api.Data;using XeoTechErp.Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using XeoTechErp.Application.Contracts.PurchaseOrders;
+using XeoTechErp.Application.Services;
+using XeoTechErp.Domain.Enums;
+
 namespace XeoTechErp.Api.Controllers.Procurement;
-[ApiController,Route("api/purchase-orders"),Authorize]
-public class PurchaseOrdersController(XeoTechDbContext db):ControllerBase{
-[HttpGet]public async Task<IActionResult> Get()=>Ok(await db.PurchaseOrders.AsNoTracking().Include(x=>x.Supplier).OrderByDescending(x=>x.Created).ToListAsync());
-[HttpPost]public async Task<IActionResult> Create(PurchaseOrder po){var p=await db.Products.FindAsync(po.ProductId);var s=await db.Suppliers.FindAsync(po.SupplierId);if(p is null||s is null)return BadRequest(new{error="Product or supplier not found."});if(po.Qty<=0||po.Cost<0)return BadRequest(new{error="Invalid quantity or cost."});po.Id=0;po.ProductName=p.Name;po.Created=DateTime.UtcNow;db.PurchaseOrders.Add(po);await db.SaveChangesAsync();return Created($"/api/purchase-orders/{po.Id}",po);}
-[HttpPatch("{id:int}/status")]public async Task<IActionResult> Status(int id,PoStatus status){var po=await db.PurchaseOrders.FindAsync(id);if(po is null)return NotFound();if(status==PoStatus.Received&&po.Status!=PoStatus.Received){var p=await db.Products.FindAsync(po.ProductId);if(p is null)return BadRequest(new{error="Product not found."});var old=p.Stock;var oldCost=p.Cost;p.Cost=old+po.Qty==0?po.Cost:(old*oldCost+po.Qty*po.Cost)/(old+po.Qty);p.Stock+=po.Qty;db.StockMovements.Add(new StockMovement{ProductId=p.Id,ProductName=p.Name,Delta=po.Qty,Reason="PO Received",Reference=$"PO:{po.Id}"});}po.Status=status;await db.SaveChangesAsync();return Ok(po);}
+
+[ApiController]
+[Route("api/purchase-orders")]
+[Authorize]
+public sealed class PurchaseOrdersController(IPurchaseOrderService service) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> Get(CancellationToken cancellationToken)
+        => Ok(await service.GetAsync(cancellationToken));
+
+    [Authorize(Policy = "ManagerOrAdmin")]
+    [HttpPost]
+    public async Task<IActionResult> Create(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
+    {
+        var result = await service.CreateAsync(request, cancellationToken);
+        return result.IsSuccess ? Created($"/api/purchase-orders/{result.Value!.Id}", result.Value) : BadRequest(result.Error);
+    }
+
+    [Authorize(Policy = "ManagerOrAdmin")]
+    [HttpPatch("{id:int}/status")]
+    public async Task<IActionResult> Status(int id, [FromQuery] PoStatus status, CancellationToken cancellationToken)
+    {
+        var result = await service.UpdateStatusAsync(id, status, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
+    }
 }
