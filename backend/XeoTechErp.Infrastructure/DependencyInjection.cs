@@ -13,7 +13,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default") ?? "Data Source=xeotech-erp.db";
+        var connectionString = configuration.GetConnectionString("Default")
+            ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
+
+        var jwtKey = configuration["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.StartsWith("CHANGE_ME", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Jwt:Key must be provided through secure configuration.");
+
+        var jwtIssuer = configuration["Jwt:Issuer"] ?? "XeoTechErp.Api";
+        var jwtAudience = configuration["Jwt:Audience"] ?? "XeoTechErp.Client";
+
         services.AddDbContext<XeoTechDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IProductRepository, ProductRepository>();
@@ -25,7 +34,8 @@ public static class DependencyInjection
         services.AddScoped<IFinanceRepository, FinanceRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<IPasswordVerifier, PasswordVerifier>();
-        services.AddSingleton<ITokenService>(_ => new JwtTokenService(configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is required.")));
+        services.AddSingleton<ITokenService>(_ => new JwtTokenService(jwtKey, jwtIssuer, jwtAudience));
+
         return services;
     }
 }
