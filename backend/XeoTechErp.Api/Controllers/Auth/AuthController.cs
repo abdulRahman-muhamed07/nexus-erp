@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using XeoTechErp.Application.Common;
+using Microsoft.AspNetCore.RateLimiting;
 using XeoTechErp.Application.Contracts.Auth;
 using XeoTechErp.Application.Services;
 
@@ -11,6 +11,7 @@ namespace XeoTechErp.Api.Controllers.Auth;
 public sealed class AuthController(IAuthService auth) : ControllerBase
 {
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
