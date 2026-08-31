@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IFinanceService, FinanceService>();
         services.AddScoped<IQuoteService, QuoteService>();
         services.AddScoped<IActivityService, ActivityService>();
+        services.AddScoped<IPaymentService, PaymentService>();
 
         services.AddScoped<ICommandHandler<CreateOrderCommand, Result<OrderDto>>, CreateOrderCommandHandler>();
         services.AddScoped<IQueryHandler<GetOrderQuery, OrderDto?>, GetOrderQueryHandler>();
