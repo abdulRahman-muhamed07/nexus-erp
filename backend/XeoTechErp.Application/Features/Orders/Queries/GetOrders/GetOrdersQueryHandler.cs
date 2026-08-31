@@ -10,6 +10,6 @@ public sealed class GetOrdersQueryHandler(IOrderRepository orders, IMapper mappe
     public async Task<IReadOnlyList<OrderDto>> HandleAsync(GetOrdersQuery query, CancellationToken cancellationToken = default)
     {
         var entities = await orders.GetAllAsync(cancellationToken);
-        return mapper.Map<List<OrderDto>>(entities);
+        return mapper.Map<IReadOnlyList<OrderDto>>(entities);
     }
 }
