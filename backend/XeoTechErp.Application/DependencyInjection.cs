@@ -1,7 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using XeoTechErp.Application.Features.Finance;
+using XeoTechErp.Application.Features.Orders.Commands.CreateOrder;
+using XeoTechErp.Application.Features.Orders.Queries.GetOrder;
+using XeoTechErp.Application.Features.Orders.Queries.GetOrders;
 using XeoTechErp.Application.Features.Quotes;
 using XeoTechErp.Application.Services;
+using XeoTechErp.Application.CQRS;
+using XeoTechErp.Application.Contracts.Orders;
+using XeoTechErp.Application.Common;
 
 namespace XeoTechErp.Application;
 
@@ -12,11 +18,15 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICustomerService, CustomerService>();
-        services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IFinanceService, FinanceService>();
         services.AddScoped<IQuoteService, QuoteService>();
+
+        services.AddScoped<ICommandHandler<CreateOrderCommand, Result<OrderDto>>, CreateOrderCommandHandler>();
+        services.AddScoped<IQueryHandler<GetOrderQuery, OrderDto?>, GetOrderQueryHandler>();
+        services.AddScoped<IQueryHandler<GetOrdersQuery, IReadOnlyList<OrderDto>>, GetOrdersQueryHandler>();
+
         return services;
     }
 }
