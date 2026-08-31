@@ -1,5 +1,3 @@
-using XeoTechErp.Application.Common.Models;
-
 namespace XeoTechErp.Application.Features.Finance.Dashboard;
 
 public interface IFinanceReportingService
