@@ -1,6 +1,6 @@
-using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Common.Models;
 
-namespace XeoTechErp.Application.Services;
+namespace XeoTechErp.Application.Abstractions.Services;
 
 public interface IDashboardService
 {
