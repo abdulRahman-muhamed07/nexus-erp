@@ -4,28 +4,6 @@ using XeoTechErp.Domain.Enums;
 
 namespace XeoTechErp.Application.Features.Finance;
 
-public interface IFinanceService
-{
-    Task<FinanceSummaryDto> GetSummaryAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<AgingBucketDto>> GetAgingAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<BudgetVarianceDto>> GetBudgetVarianceAsync(CancellationToken cancellationToken = default);
-    Task<PeriodFinanceSummaryDto> GetPeriodSummaryAsync(DateTime? from, DateTime? to, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Asset>> GetAssetsAsync(CancellationToken cancellationToken = default);
-    Task<Asset> CreateAssetAsync(Asset asset, CancellationToken cancellationToken = default);
-    Task<Asset> DisposeAssetAsync(int id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<object>> GetDepreciationAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Budget>> GetBudgetsAsync(CancellationToken cancellationToken = default);
-    Task<Budget> UpsertBudgetAsync(Budget input, CancellationToken cancellationToken = default);
-    Task DeleteBudgetAsync(int id, CancellationToken cancellationToken = default);
-    Task<(IReadOnlyList<Expense> Data, int Total)> GetExpensesAsync(int page, int pageSize, string? category, CancellationToken cancellationToken = default);
-    Task<Expense> CreateExpenseAsync(Expense expense, CancellationToken cancellationToken = default);
-    Task DeleteExpenseAsync(int id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Invoice>> GetInvoicesAsync(InvoiceStatus? status, CancellationToken cancellationToken = default);
-    Task<Invoice> GetInvoiceAsync(int id, CancellationToken cancellationToken = default);
-    Task<Invoice> CreateInvoiceFromOrderAsync(int orderId, CancellationToken cancellationToken = default);
-    Task<Invoice> PayInvoiceAsync(int id, CancellationToken cancellationToken = default);
-}
-
 public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork unitOfWork) : IFinanceService
 {
     public Task<FinanceSummaryDto> GetSummaryAsync(CancellationToken cancellationToken = default) => repository.GetSummaryAsync(cancellationToken);
@@ -76,8 +54,17 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
         if (string.IsNullOrWhiteSpace(input.Category) || input.MonthlyAmount < 0) throw new ArgumentException("Invalid budget.");
         var category = input.Category.Trim();
         var budget = await repository.GetBudgetByCategoryAsync(category, cancellationToken);
-        if (budget is null) { input.Id = 0; input.Category = category; repository.AddBudget(input); budget = input; }
-        else budget.MonthlyAmount = input.MonthlyAmount;
+        if (budget is null)
+        {
+            input.Id = 0;
+            input.Category = category;
+            repository.AddBudget(input);
+            budget = input;
+        }
+        else
+        {
+            budget.MonthlyAmount = input.MonthlyAmount;
+        }
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return budget;
     }
@@ -91,7 +78,8 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
 
     public async Task<(IReadOnlyList<Expense> Data, int Total)> GetExpensesAsync(int page, int pageSize, string? category, CancellationToken cancellationToken = default)
     {
-        page = Math.Max(page, 1); pageSize = Math.Clamp(pageSize, 1, 100);
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var data = await repository.GetExpensesAsync(page, pageSize, category, cancellationToken);
         var total = await repository.CountExpensesAsync(category, cancellationToken);
         return (data, total);
@@ -100,19 +88,26 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
     public async Task<Expense> CreateExpenseAsync(Expense expense, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(expense.Category) || expense.Amount <= 0) throw new ArgumentException("Category and a positive amount are required.");
-        expense.Id = 0; expense.Category = expense.Category.Trim(); expense.Description = expense.Description?.Trim() ?? string.Empty;
+        expense.Id = 0;
+        expense.Category = expense.Category.Trim();
+        expense.Description = expense.Description?.Trim() ?? string.Empty;
         if (expense.Date == default) expense.Date = DateTime.UtcNow;
-        repository.AddExpense(expense); await unitOfWork.SaveChangesAsync(cancellationToken); return expense;
+        repository.AddExpense(expense);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return expense;
     }
 
     public async Task DeleteExpenseAsync(int id, CancellationToken cancellationToken = default)
     {
         var expense = await repository.GetExpenseAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Expense not found.");
-        repository.RemoveExpense(expense); await unitOfWork.SaveChangesAsync(cancellationToken);
+        repository.RemoveExpense(expense);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public Task<IReadOnlyList<Invoice>> GetInvoicesAsync(InvoiceStatus? status, CancellationToken cancellationToken = default) => repository.GetInvoicesAsync(status, cancellationToken);
-    public async Task<Invoice> GetInvoiceAsync(int id, CancellationToken cancellationToken = default) => await repository.GetInvoiceAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Invoice not found.");
+
+    public async Task<Invoice> GetInvoiceAsync(int id, CancellationToken cancellationToken = default)
+        => await repository.GetInvoiceAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Invoice not found.");
 
     public async Task<Invoice> CreateInvoiceFromOrderAsync(int orderId, CancellationToken cancellationToken = default)
     {
@@ -122,19 +117,24 @@ public sealed class FinanceService(IFinanceRepository repository, IUnitOfWork un
         var days = order.Customer.PaymentTerms switch { "Due on Receipt" => 0, "Net 15" => 15, "Net 45" => 45, "Net 60" => 60, _ => 30 };
         var issued = DateTime.UtcNow;
         var invoice = new Invoice { OrderId = order.Id, CustomerId = order.CustomerId, CustomerName = order.Customer.Company, Amount = order.Total, Issued = issued, Due = issued.AddDays(days) };
-        repository.AddInvoice(invoice); await unitOfWork.SaveChangesAsync(cancellationToken); return invoice;
+        repository.AddInvoice(invoice);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return invoice;
     }
 
     public async Task<Invoice> PayInvoiceAsync(int id, CancellationToken cancellationToken = default)
     {
         var invoice = await repository.GetInvoiceAsync(id, cancellationToken) ?? throw new KeyNotFoundException("Invoice not found.");
         if (invoice.Status == InvoiceStatus.Paid) return invoice;
-        invoice.Status = InvoiceStatus.Paid; invoice.PaidOn = DateTime.UtcNow;
+        invoice.Status = InvoiceStatus.Paid;
+        invoice.PaidOn = DateTime.UtcNow;
         if (invoice.OrderId is int orderId)
         {
             var paid = await repository.GetOrderPaymentsAsync(orderId, cancellationToken);
-            if (paid < invoice.Amount) repository.AddPayment(new Payment { OrderId = orderId, Amount = invoice.Amount - paid, Method = PaymentMethod.Other });
+            if (paid < invoice.Amount)
+                repository.AddPayment(new Payment { OrderId = orderId, Amount = invoice.Amount - paid, Method = PaymentMethod.Other });
         }
-        await unitOfWork.SaveChangesAsync(cancellationToken); return invoice;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return invoice;
     }
 }
