@@ -1,28 +1,56 @@
 using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Common;
+using XeoTechErp.Application.Common.Models;
 using XeoTechErp.Domain.Entities;
 
 namespace XeoTechErp.Application.Services;
 
-public sealed class InventoryService(IProductRepository products, IInventoryRepository inventory, IUnitOfWork unitOfWork) : IInventoryService
+public sealed class InventoryService(
+    IProductRepository products,
+    IInventoryRepository inventory,
+    IUnitOfWork unitOfWork) : IInventoryService
 {
-    public async Task<object> GetSummaryAsync(CancellationToken cancellationToken = default)
-        => await inventory.GetSummaryAsync(cancellationToken);
-
-    public async Task<Result> AdjustAsync(int productId, int delta, string reason, string actor, CancellationToken cancellationToken = default)
+    public async Task<InventorySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken = default)
     {
-        var product = await products.GetByIdAsync(productId, cancellationToken);
-        if (product is null) return Result.Failure("PRODUCT_NOT_FOUND", "Product was not found.");
-        if (product.Stock + delta < 0) return Result.Failure("NEGATIVE_STOCK", "Stock cannot become negative.");
+        var summary = await inventory.GetSummaryAsync(cancellationToken);
+        return new InventorySummaryResponse(
+            summary.Products,
+            summary.Units,
+            summary.InventoryValue,
+            summary.LowStock);
+    }
 
-        product.Stock += delta;
+    public async Task<Result> AdjustAsync(
+        int productId,
+        int delta,
+        string reason,
+        string actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (delta == 0)
+            return Result.Failure("INVALID_ADJUSTMENT", "Stock adjustment cannot be zero.");
+
+        var product = await products.GetByIdAsync(productId, cancellationToken);
+        if (product is null)
+            return Result.Failure("PRODUCT_NOT_FOUND", "Product was not found.");
+
+        try
+        {
+            product.AdjustStock(delta);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return Result.Failure("INVALID_STOCK_ADJUSTMENT", ex.Message);
+        }
+
         inventory.AddMovement(new StockMovement
         {
             ProductId = product.Id,
             ProductName = product.Name,
             Delta = delta,
             Reason = string.IsNullOrWhiteSpace(reason) ? "Manual Adjustment" : reason.Trim(),
-            By = actor
+            By = string.IsNullOrWhiteSpace(actor) ? "system" : actor.Trim()
         });
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
