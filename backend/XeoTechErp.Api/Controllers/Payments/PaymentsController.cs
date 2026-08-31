@@ -1,0 +1,8 @@
+using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Microsoft.EntityFrameworkCore;using XeoTechErp.Api.Data;using XeoTechErp.Api.Models;
+namespace XeoTechErp.Api.Controllers.Payments;
+[ApiController,Route("api/payments"),Authorize]
+public class PaymentsController(XeoTechDbContext db):ControllerBase{
+[HttpGet("order/{orderId:int}")]public async Task<IActionResult> ByOrder(int orderId)=>Ok(await db.Payments.AsNoTracking().Where(x=>x.OrderId==orderId).OrderByDescending(x=>x.Date).ToListAsync());
+[HttpPost]public async Task<IActionResult> Create(Payment payment){if(payment.OrderId<=0||payment.Amount<=0)return BadRequest(new{error="Order and positive amount are required."});var o=await db.Orders.FindAsync(payment.OrderId);if(o is null)return NotFound(new{error="Order not found."});var paid=await db.Payments.Where(x=>x.OrderId==payment.OrderId).SumAsync(x=>(decimal?)x.Amount)??0;if(paid+payment.Amount>o.Total)return Conflict(new{error="Payment exceeds order balance.",balance=o.Total-paid});payment.Id=0;payment.Date=DateTime.UtcNow;db.Payments.Add(payment);await db.SaveChangesAsync();return Created($"/api/payments/{payment.Id}",payment);}
+[HttpGet("order/{orderId:int}/summary")]public async Task<IActionResult> Summary(int orderId){var o=await db.Orders.FindAsync(orderId);if(o is null)return NotFound();var paid=await db.Payments.Where(x=>x.OrderId==orderId).SumAsync(x=>(decimal?)x.Amount)??0;return Ok(new{orderId,total=o.Total,paid,balance=Math.Max(0,o.Total-paid),status=paid<=0?"Unpaid":paid<o.Total?"Partially Paid":"Paid"});}
+}
