@@ -1,7 +1,7 @@
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Customers;
 
-namespace XeoTechErp.Application.Services;
+namespace XeoTechErp.Application.Abstractions.Services;
 
 public interface ICustomerService
 {
