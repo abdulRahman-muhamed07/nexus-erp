@@ -2,16 +2,9 @@ using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Products;
 using XeoTechErp.Domain.Entities;
+using XeoTechErp.Domain.Exceptions;
 
 namespace XeoTechErp.Application.Services;
-
-public interface IProductService
-{
-    Task<IReadOnlyList<ProductDto>> GetAsync(string? search, CancellationToken cancellationToken = default);
-    Task<ProductDto?> GetAsync(int id, CancellationToken cancellationToken = default);
-    Task<Result<ProductDto>> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default);
-    Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default);
-}
 
 public sealed class ProductService(IProductRepository repository, IUnitOfWork unitOfWork) : IProductService
 {
@@ -28,21 +21,12 @@ public sealed class ProductService(IProductRepository repository, IUnitOfWork un
 
         try
         {
-            var product = new Product(
-                request.Sku,
-                request.Name,
-                request.Price,
-                request.Cost,
-                request.Stock,
-                request.ReorderLevel,
-                request.Category,
-                request.SupplierId);
-
+            var product = new Product(request.Sku, request.Name, request.Price, request.Cost, request.Stock, request.ReorderLevel, request.Category, request.SupplierId);
             repository.Add(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             return Result<ProductDto>.Success(ToDto(product));
         }
-        catch (XeoTechErp.Domain.Exceptions.DomainRuleException ex)
+        catch (DomainRuleException ex)
         {
             return Result<ProductDto>.Failure("PRODUCT_INVALID", ex.Message);
         }
@@ -57,5 +41,5 @@ public sealed class ProductService(IProductRepository repository, IUnitOfWork un
         return Result.Success();
     }
 
-    private static ProductDto ToDto(Product p) => new(p.Id, p.Sku, p.Name, p.Category, p.Price, p.Cost, p.Stock, p.ReorderLevel, p.SupplierId);
+    private static ProductDto ToDto(Product product) => new(product.Id, product.Sku, product.Name, product.Category, product.Price, product.Cost, product.Stock, product.ReorderLevel, product.SupplierId);
 }
