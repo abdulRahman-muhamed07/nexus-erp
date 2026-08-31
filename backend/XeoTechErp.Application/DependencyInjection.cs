@@ -27,11 +27,18 @@ public static class DependencyInjection
         services.AddScoped<IQuoteService, QuoteService>();
         services.AddScoped<IActivityService, ActivityService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<ISupplierService, SupplierService>();
+        services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<IReturnService, ReturnService>();
+        services.AddScoped<ISettingsService, SettingsService>();
+        services.AddScoped<IReportService, ReportService>();
 
         services.AddScoped<ICommandHandler<CreateOrderCommand, Result<OrderDto>>, CreateOrderCommandHandler>();
         services.AddScoped<IQueryHandler<GetOrderQuery, OrderDto?>, GetOrderQueryHandler>();
         services.AddScoped<IQueryHandler<GetOrdersQuery, IReadOnlyList<OrderDto>>, GetOrdersQueryHandler>();
-
         return services;
     }
 }
