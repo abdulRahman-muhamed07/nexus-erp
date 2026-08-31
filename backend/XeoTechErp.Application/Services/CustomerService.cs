@@ -1,3 +1,4 @@
+using AutoMapper;
 using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Customers;
@@ -5,13 +6,13 @@ using XeoTechErp.Domain.Entities;
 
 namespace XeoTechErp.Application.Services;
 
-public sealed class CustomerService(ICustomerRepository repository, IUnitOfWork unitOfWork) : ICustomerService
+public sealed class CustomerService(ICustomerRepository repository, IUnitOfWork unitOfWork, IMapper mapper) : ICustomerService
 {
     public async Task<IReadOnlyList<CustomerDto>> GetAsync(string? search, CancellationToken cancellationToken = default)
-        => (await repository.SearchAsync(search, cancellationToken)).Select(ToDto).ToList();
+        => mapper.Map<List<CustomerDto>>(await repository.SearchAsync(search, cancellationToken));
 
     public async Task<CustomerDto?> GetAsync(int id, CancellationToken cancellationToken = default)
-        => await repository.GetByIdAsync(id, cancellationToken) is { } customer ? ToDto(customer) : null;
+        => await repository.GetByIdAsync(id, cancellationToken) is { } customer ? mapper.Map<CustomerDto>(customer) : null;
 
     public async Task<Result<CustomerDto>> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
     {
@@ -34,18 +35,6 @@ public sealed class CustomerService(ICustomerRepository repository, IUnitOfWork 
 
         repository.Add(customer);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return Result<CustomerDto>.Success(ToDto(customer));
+        return Result<CustomerDto>.Success(mapper.Map<CustomerDto>(customer));
     }
-
-    private static CustomerDto ToDto(Customer customer) => new(
-        customer.Id,
-        customer.Company,
-        customer.ContactName,
-        customer.Email,
-        customer.Phone,
-        customer.Country,
-        customer.Tier,
-        customer.PaymentTerms,
-        customer.CreditLimit,
-        customer.OnHold);
 }
