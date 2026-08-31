@@ -1,3 +1,4 @@
+using AutoMapper;
 using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Application.Common;
 using XeoTechErp.Application.Contracts.Products;
@@ -6,13 +7,13 @@ using XeoTechErp.Domain.Exceptions;
 
 namespace XeoTechErp.Application.Services;
 
-public sealed class ProductService(IProductRepository repository, IUnitOfWork unitOfWork) : IProductService
+public sealed class ProductService(IProductRepository repository, IUnitOfWork unitOfWork, IMapper mapper) : IProductService
 {
     public async Task<IReadOnlyList<ProductDto>> GetAsync(string? search, CancellationToken cancellationToken = default)
-        => (await repository.SearchAsync(search, cancellationToken)).Select(ToDto).ToList();
+        => mapper.Map<List<ProductDto>>(await repository.SearchAsync(search, cancellationToken));
 
     public async Task<ProductDto?> GetAsync(int id, CancellationToken cancellationToken = default)
-        => await repository.GetByIdAsync(id, cancellationToken) is { } product ? ToDto(product) : null;
+        => await repository.GetByIdAsync(id, cancellationToken) is { } product ? mapper.Map<ProductDto>(product) : null;
 
     public async Task<Result<ProductDto>> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
     {
@@ -24,7 +25,7 @@ public sealed class ProductService(IProductRepository repository, IUnitOfWork un
             var product = new Product(request.Sku, request.Name, request.Price, request.Cost, request.Stock, request.ReorderLevel, request.Category, request.SupplierId);
             repository.Add(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);
-            return Result<ProductDto>.Success(ToDto(product));
+            return Result<ProductDto>.Success(mapper.Map<ProductDto>(product));
         }
         catch (DomainRuleException ex)
         {
@@ -40,6 +41,4 @@ public sealed class ProductService(IProductRepository repository, IUnitOfWork un
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
-
-    private static ProductDto ToDto(Product product) => new(product.Id, product.Sku, product.Name, product.Category, product.Price, product.Cost, product.Stock, product.ReorderLevel, product.SupplierId);
 }
