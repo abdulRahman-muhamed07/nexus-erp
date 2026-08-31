@@ -1,10 +1,14 @@
+using System.Reflection;
+using Xunit;
+
 namespace XeoTechErp.Tests;
 
 public sealed class ArchitectureDependencyTests
 {
     [Fact]
-    public void Domain_project_must_have_no_framework_dependencies()
+    public void Domain_must_not_reference_entity_framework()
     {
-        Assert.True(true);
+        var references = typeof(XeoTechErp.Domain.Entities.Product).Assembly.GetReferencedAssemblies();
+        Assert.DoesNotContain(references, x => x.Name!.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal));
     }
 }
