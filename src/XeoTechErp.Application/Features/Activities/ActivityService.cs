@@ -3,7 +3,7 @@ using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Application.Contracts.Activities;
 using XeoTechErp.Domain.Entities;
 
-namespace XeoTechErp.Application.Services;
+namespace XeoTechErp.Application.Features.Activities;
 
 public sealed class ActivityService(IActivityRepository repository, IUnitOfWork unitOfWork, IMapper mapper) : IActivityService
 {
@@ -12,8 +12,16 @@ public sealed class ActivityService(IActivityRepository repository, IUnitOfWork 
 
     public async Task<ActivityResponse> CreateAsync(CreateActivityRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Text)) throw new ArgumentException("Activity text is required.");
-        var activity = new Activity { Icon = request.Icon?.Trim() ?? string.Empty, Text = request.Text.Trim(), Time = DateTime.UtcNow };
+        if (string.IsNullOrWhiteSpace(request.Text))
+            throw new ArgumentException("Activity text is required.");
+
+        var activity = new Activity
+        {
+            Icon = request.Icon?.Trim() ?? string.Empty,
+            Text = request.Text.Trim(),
+            Time = DateTime.UtcNow
+        };
+
         repository.Add(activity);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return mapper.Map<ActivityResponse>(activity);
