@@ -2,37 +2,24 @@ name: Backend CI
 
 on:
   push:
-    branches: [ master, feature/frontend-split-final ]
+    branches: [ master ]
     paths:
       - 'src/**'
       - 'tests/**'
       - '*.sln'
       - '.github/workflows/backend-ci.yml'
-      - 'nexus-erp.html'
-      - 'front/**'
-      - 'scripts/split_frontend.py'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
       - '*.sln'
       - '.github/workflows/backend-ci.yml'
-      - 'nexus-erp.html'
-      - 'front/**'
-
-permissions:
-  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Split frontend once
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/frontend-split-final' && hashFiles('scripts/split_frontend.py') != '' }}
-        run: python scripts/split_frontend.py
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
