@@ -7,11 +7,13 @@ using XeoTechErp.Infrastructure.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration)
+    .AddJwtAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
+
 builder.Services.AddOpenApi();
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddJwtAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -52,5 +54,4 @@ app.MapControllers();
 
 app.Run();
 
-// Keep Program public for integration-test hosting.
 public partial class Program;
