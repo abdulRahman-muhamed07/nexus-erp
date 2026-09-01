@@ -7,16 +7,16 @@ using XeoTechErp.Domain.Enums;
 namespace XeoTechErp.Application.Features.Finance.Invoices;
 
 public sealed class InvoiceService(
-    IFinanceRepository repository,
+    IInvoiceRepository repository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : IInvoiceService
 {
     public async Task<IReadOnlyList<InvoiceResponse>> GetAsync(InvoiceStatus? status, CancellationToken cancellationToken = default)
-        => mapper.Map<IReadOnlyList<InvoiceResponse>>(await repository.GetInvoicesAsync(status, cancellationToken));
+        => mapper.Map<IReadOnlyList<InvoiceResponse>>(await repository.GetAllAsync(status, cancellationToken));
 
     public async Task<Result<InvoiceResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var invoice = await repository.GetInvoiceAsync(id, cancellationToken);
+        var invoice = await repository.GetByIdAsync(id, cancellationToken);
         return invoice is null
             ? Result<InvoiceResponse>.Failure("INVOICE_NOT_FOUND", "Invoice was not found.")
             : Result<InvoiceResponse>.Success(mapper.Map<InvoiceResponse>(invoice));
@@ -29,7 +29,7 @@ public sealed class InvoiceService(
             return Result<InvoiceResponse>.Failure("ORDER_NOT_FOUND", "Order was not found.");
         if (order.Status != OrderStatus.Delivered)
             return Result<InvoiceResponse>.Failure("ORDER_NOT_DELIVERED", "Invoice can only be created for delivered orders.");
-        if (await repository.InvoiceExistsForOrderAsync(orderId, cancellationToken))
+        if (await repository.ExistsForOrderAsync(orderId, cancellationToken))
             return Result<InvoiceResponse>.Failure("INVOICE_EXISTS", "Invoice already exists for this order.");
 
         var days = order.Customer.PaymentTerms switch
@@ -59,7 +59,7 @@ public sealed class InvoiceService(
 
     public async Task<Result<InvoiceResponse>> PayAsync(int id, CancellationToken cancellationToken = default)
     {
-        var invoice = await repository.GetInvoiceAsync(id, cancellationToken);
+        var invoice = await repository.GetByIdAsync(id, cancellationToken);
         if (invoice is null)
             return Result<InvoiceResponse>.Failure("INVOICE_NOT_FOUND", "Invoice was not found.");
 
