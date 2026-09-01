@@ -7,12 +7,12 @@ using XeoTechErp.Domain.Enums;
 namespace XeoTechErp.Application.Features.Finance.Assets;
 
 public sealed class AssetService(
-    IFinanceRepository repository,
+    IAssetRepository repository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : IAssetService
 {
     public async Task<IReadOnlyList<AssetResponse>> GetAsync(CancellationToken cancellationToken = default)
-        => mapper.Map<IReadOnlyList<AssetResponse>>(await repository.GetAssetsAsync(cancellationToken));
+        => mapper.Map<IReadOnlyList<AssetResponse>>(await repository.GetAllAsync(cancellationToken));
 
     public async Task<Result<AssetResponse>> CreateAsync(CreateAssetRequest request, CancellationToken cancellationToken = default)
     {
@@ -30,14 +30,14 @@ public sealed class AssetService(
             Status = AssetStatus.InService
         };
 
-        repository.AddAsset(asset);
+        repository.Add(asset);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<AssetResponse>.Success(mapper.Map<AssetResponse>(asset));
     }
 
     public async Task<Result<AssetResponse>> DisposeAsync(int id, CancellationToken cancellationToken = default)
     {
-        var asset = await repository.GetAssetAsync(id, cancellationToken);
+        var asset = await repository.GetByIdAsync(id, cancellationToken);
         if (asset is null)
             return Result<AssetResponse>.Failure("ASSET_NOT_FOUND", "Asset was not found.");
         if (asset.Status == AssetStatus.Disposed)
@@ -51,7 +51,7 @@ public sealed class AssetService(
 
     public async Task<IReadOnlyList<DepreciationResponse>> GetDepreciationAsync(CancellationToken cancellationToken = default)
     {
-        var assets = await repository.GetAssetsAsync(cancellationToken);
+        var assets = await repository.GetAllAsync(cancellationToken);
         return assets
             .Where(x => x.Status == AssetStatus.InService)
             .Select(x => new DepreciationResponse(
