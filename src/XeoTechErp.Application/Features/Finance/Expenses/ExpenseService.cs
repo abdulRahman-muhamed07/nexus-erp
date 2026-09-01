@@ -6,7 +6,7 @@ using XeoTechErp.Domain.Entities;
 namespace XeoTechErp.Application.Features.Finance.Expenses;
 
 public sealed class ExpenseService(
-    IFinanceRepository repository,
+    IExpenseRepository repository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : IExpenseService
 {
@@ -15,8 +15,8 @@ public sealed class ExpenseService(
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var data = await repository.GetExpensesAsync(page, pageSize, category, cancellationToken);
-        var total = await repository.CountExpensesAsync(category, cancellationToken);
+        var data = await repository.GetPageAsync(page, pageSize, category, cancellationToken);
+        var total = await repository.CountAsync(category, cancellationToken);
         return new PagedResult<ExpenseResponse>(mapper.Map<IReadOnlyList<ExpenseResponse>>(data), page, pageSize, total);
     }
 
@@ -33,18 +33,18 @@ public sealed class ExpenseService(
             Description = request.Description?.Trim() ?? string.Empty
         };
 
-        repository.AddExpense(expense);
+        repository.Add(expense);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result<ExpenseResponse>.Success(mapper.Map<ExpenseResponse>(expense));
     }
 
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var expense = await repository.GetExpenseAsync(id, cancellationToken);
+        var expense = await repository.GetByIdAsync(id, cancellationToken);
         if (expense is null)
             return Result.Failure("EXPENSE_NOT_FOUND", "Expense was not found.");
 
-        repository.RemoveExpense(expense);
+        repository.Remove(expense);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
