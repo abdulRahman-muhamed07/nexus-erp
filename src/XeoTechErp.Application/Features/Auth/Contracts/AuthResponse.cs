@@ -1,6 +1,6 @@
 using XeoTechErp.Domain.Enums;
 
-namespace XeoTechErp.Application.Contracts.Auth;
+namespace XeoTechErp.Application.Features.Auth.Contracts;
 
 public sealed record AuthResponse(
     string AccessToken,
