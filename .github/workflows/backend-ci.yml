@@ -15,17 +15,67 @@ on:
       - '*.sln'
       - '.github/workflows/backend-ci.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Split frontend assets
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/frontend-split-final' && hashFiles('nexus-erp.html') != '' }}
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          source = Path('nexus-erp.html')
+          html = source.read_text(encoding='utf-8')
+          style = re.search(r'<style\b[^>]*>([\s\S]*?)</style>', html, re.I)
+          if not style:
+              raise SystemExit('Inline CSS block not found')
+          css = style.group(1).strip() + '\n'
+          html = html[:style.start()] + '<link rel="stylesheet" href="../css/nexus-erp.css">' + html[style.end():]
+
+          scripts = re.findall(r'<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)</script>', html, re.I)
+          if not scripts:
+              raise SystemExit('Inline JavaScript block not found')
+          js = '\n\n'.join(s.strip() for s in scripts if s.strip()) + '\n'
+          html = re.sub(r'<script\b(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?</script>', '', html, flags=re.I)
+          html = html.replace('</body>', '<script src="../js/nexus-erp.js"></script>\n</body>', 1)
+
+          Path('front/html').mkdir(parents=True, exist_ok=True)
+          Path('front/css').mkdir(parents=True, exist_ok=True)
+          Path('front/js').mkdir(parents=True, exist_ok=True)
+          Path('front/html/nexus-erp.html').write_text(html.strip() + '\n', encoding='utf-8')
+          Path('front/css/nexus-erp.css').write_text(css, encoding='utf-8')
+          Path('front/js/nexus-erp.js').write_text(js, encoding='utf-8')
+          source.unlink()
+          for keep in ('front/html/.gitkeep', 'front/css/.gitkeep', 'front/js/.gitkeep'):
+              p = Path(keep)
+              if p.exists(): p.unlink()
+
+          # Restore this workflow to the base version so the generated commit contains only frontend files.
+          import subprocess
+          subprocess.run(['git', 'checkout', 'HEAD', '--', '.github/workflows/backend-ci.yml'], check=True)
+          subprocess.run(['git', 'add', '-A'], check=True)
+          subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
+          subprocess.run(['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'], check=True)
+          subprocess.run(['git', 'commit', '-m', 'chore: split frontend assets'], check=True)
+          subprocess.run(['git', 'push', 'origin', 'HEAD:feature/frontend-split-final'], check=True)
+
       - uses: actions/setup-dotnet@v4
+        if: ${{ hashFiles('*.sln') != '' }}
         with:
           dotnet-version: '10.0.x'
       - name: Restore
+        if: ${{ hashFiles('*.sln') != '' }}
         run: dotnet restore XeoTechErp.sln
       - name: Build
+        if: ${{ hashFiles('*.sln') != '' }}
         run: dotnet build XeoTechErp.sln --configuration Release --no-restore
       - name: Test
+        if: ${{ hashFiles('*.sln') != '' }}
         run: dotnet test XeoTechErp.sln --configuration Release --no-build --verbosity normal
