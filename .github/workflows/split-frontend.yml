@@ -19,14 +19,12 @@ jobs:
         run: |
           from pathlib import Path
           import re
-          import shutil
 
           source = Path("nexus-erp.html")
           if not source.exists():
               raise SystemExit("nexus-erp.html was not found")
 
           html = source.read_text(encoding="utf-8")
-
           style_match = re.search(r"<style\b[^>]*>(.*?)</style>", html, re.IGNORECASE | re.DOTALL)
           if not style_match:
               raise SystemExit("Inline <style> block was not found")
@@ -42,15 +40,13 @@ jobs:
           html = re.sub(r"<script\b(?![^>]*\bsrc\s*=)[^>]*>.*?</script>", "", html, flags=re.IGNORECASE | re.DOTALL)
           html = html.replace("</body>", '<script src="../js/nexus-erp.js"></script>\n</body>", 1)
 
-          out_html = Path("front/html/nexus-erp.html")
-          out_css = Path("front/css/nexus-erp.css")
-          out_js = Path("front/js/nexus-erp.js")
-          for path in (out_html.parent, out_css.parent, out_js.parent):
-              path.mkdir(parents=True, exist_ok=True)
+          Path("front/html").mkdir(parents=True, exist_ok=True)
+          Path("front/css").mkdir(parents=True, exist_ok=True)
+          Path("front/js").mkdir(parents=True, exist_ok=True)
 
-          out_html.write_text(html.strip() + "\n", encoding="utf-8")
-          out_css.write_text(css, encoding="utf-8")
-          out_js.write_text(js, encoding="utf-8")
+          Path("front/html/nexus-erp.html").write_text(html.strip() + "\n", encoding="utf-8")
+          Path("front/css/nexus-erp.css").write_text(css, encoding="utf-8")
+          Path("front/js/nexus-erp.js").write_text(js, encoding="utf-8")
 
           source.unlink()
           for legacy in (Path("front/html/.gitkeep"), Path("front/css/.gitkeep"), Path("front/js/.gitkeep")):
@@ -59,9 +55,9 @@ jobs:
 
       - name: Commit generated frontend structure
         run: |
+          rm -f .github/workflows/split-frontend.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "chore: split frontend assets"
           git push origin HEAD:chore/split-frontend-assets
-          git rm .github/workflows/split-frontend.yml
