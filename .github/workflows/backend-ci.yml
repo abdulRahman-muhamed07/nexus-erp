@@ -20,6 +20,9 @@ on:
       - 'nexus-erp.html'
       - 'front/**'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
