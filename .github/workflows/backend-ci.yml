@@ -28,4 +28,4 @@ jobs:
       - name: Build
         run: dotnet build XeoTechErp.sln --configuration Release --no-restore
       - name: Test
-        run: dotnet test XeoTechErp.sln --configuration Release --no-build --verbosity normal
+        run: dotnet test XeoTechErp.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
