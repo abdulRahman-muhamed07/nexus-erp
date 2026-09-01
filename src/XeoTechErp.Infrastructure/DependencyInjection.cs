@@ -28,7 +28,11 @@ public static class DependencyInjection
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-        services.AddScoped<IFinanceRepository, FinanceRepository>();
+        services.AddScoped<IAssetRepository, AssetRepository>();
+        services.AddScoped<IBudgetRepository, BudgetRepository>();
+        services.AddScoped<IExpenseRepository, ExpenseRepository>();
+        services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+        services.AddScoped<IFinanceReportingRepository, FinanceReportingRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IAppConfigRepository, AppConfigRepository>();
