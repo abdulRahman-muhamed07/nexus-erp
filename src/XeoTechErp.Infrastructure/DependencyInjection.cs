@@ -14,8 +14,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Default")
-            ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required. Provide it through User Secrets in development or environment/secret configuration in production.");
 
         services.AddDbContext<XeoTechDbContext>(options => options.UseSqlServer(connectionString));
         services.AddInfrastructureHealthChecks();
