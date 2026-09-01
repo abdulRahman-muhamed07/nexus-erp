@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace XeoTechErp.Application.Contracts.Auth;
+namespace XeoTechErp.Application.Features.Auth.Contracts;
 
 public sealed record RegisterRequest(
     [property: Required, StringLength(100, MinimumLength = 2)] string DisplayName,
