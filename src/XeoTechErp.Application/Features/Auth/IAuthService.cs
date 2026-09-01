@@ -1,5 +1,5 @@
 using XeoTechErp.Application.Common;
-using XeoTechErp.Application.Contracts.Auth;
+using XeoTechErp.Application.Features.Auth.Contracts;
 
 namespace XeoTechErp.Application.Features.Auth;
 
