@@ -28,101 +28,73 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Split frontend at section boundaries
+      - name: Split frontend once
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/frontend-split-final' && !contains(github.event.head_commit.message, 'chore: split frontend assets') }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const branch = 'feature/frontend-split-final';
-            const { data: file } = await github.rest.repos.getContent({ owner, repo, path: 'nexus-erp.html', ref: 'master' });
-            const source = Buffer.from(file.content, 'base64').toString('utf8');
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+          import urllib.request
 
-            const styleOpen = source.indexOf('<style');
-            if (styleOpen < 0) throw new Error('Inline CSS block not found');
-            const styleStart = source.indexOf('>', styleOpen) + 1;
-            const styleEnd = source.indexOf('</style>', styleStart);
-            if (styleStart <= 0 || styleEnd < 0) throw new Error('Inline CSS block is malformed');
-            const css = source.slice(styleStart, styleEnd).trim() + '\n';
-            let html = source.slice(0, styleOpen) + '<link rel="stylesheet" href="../css/nexus-erp.css">' + source.slice(styleEnd + '</style>'.length);
+          source = Path('source-nexus-erp.html')
+          urllib.request.urlretrieve('https://raw.githubusercontent.com/abdulRahman-muhamed07/nexus-erp/master/nexus-erp.html', source)
+          text = source.read_text(encoding='utf-8')
 
-            const inlineScripts = [];
-            let searchFrom = 0;
-            while (true) {
-              const open = html.indexOf('<script', searchFrom);
-              if (open < 0) break;
-              const openEnd = html.indexOf('>', open);
-              if (openEnd < 0) throw new Error('Malformed script tag');
-              const openTag = html.slice(open, openEnd + 1).toLowerCase();
-              const close = html.indexOf('</script>', openEnd + 1);
-              if (close < 0) throw new Error('Malformed script block');
-              if (!openTag.includes('src=')) inlineScripts.push(html.slice(openEnd + 1, close));
-              searchFrom = close + '</script>'.length;
-            }
-            if (!inlineScripts.length) throw new Error('Inline JavaScript block not found');
+          style_open = text.find('<style')
+          style_start = text.find('>', style_open) + 1
+          style_close = text.find('</style>', style_start)
+          if style_open < 0 or style_start <= 0 or style_close < 0:
+              raise SystemExit('Inline CSS block not found or malformed')
+          css = text[style_start:style_close].strip() + '\n'
+          html = text[:style_open] + '<link rel="stylesheet" href="../css/nexus-erp.css">' + text[style_close + len('</style>'):]
 
-            const js = inlineScripts.join('\n\n').trim() + '\n';
-            let stripped = html;
-            for (const block of inlineScripts) {
-              const start = stripped.indexOf('<script', 0);
-              const openEnd = stripped.indexOf('>', start);
-              const close = stripped.indexOf('</script>', openEnd + 1);
-              stripped = stripped.slice(0, start) + stripped.slice(close + '</script>'.length);
-            }
+          inline = []
+          pos = 0
+          while True:
+              start = html.find('<script', pos)
+              if start < 0: break
+              end = html.find('>', start)
+              close = html.find('</script>', end + 1)
+              if end < 0 or close < 0: raise SystemExit('Malformed script block')
+              if 'src=' not in html[start:end+1].lower():
+                  inline.append(html[end+1:close])
+              pos = close + len('</script>')
+          if not inline: raise SystemExit('Inline JavaScript block not found')
+          js = '\n\n'.join(x.strip() for x in inline if x.strip()).strip() + '\n'
+          html = html.replace('<script>' + inline[0] + '</script>', '', 1) if len(inline) == 1 else html
+          if '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>' in html:
+              # Keep the external Chart.js script and remove only the inline application script.
+              start = html.find('<script', html.find('chart.umd.min.js'))
+              inline_start = html.find('<script', start + 1)
+              if inline_start >= 0:
+                  inline_end = html.find('</script>', inline_start)
+                  html = html[:inline_start] + html[inline_end + len('</script>'):]
+          else:
+              start = html.find('<script>')
+              if start >= 0:
+                  end = html.find('</script>', start)
+                  html = html[:start] + html[end + len('</script>'):]
+          html = html.replace('</body>', '<script src="../js/nexus-erp.js"></script>\n</body>', 1)
 
-            const sections = [];
-            const marker = '/* =================';
-            let first = js.indexOf(marker);
-            if (first > 0) {
-              sections.push(js.slice(0, first));
-            } else if (first < 0) {
-              sections.push(js);
-              first = js.length;
-            }
-            let pos = first;
-            while (pos < js.length && first < js.length) {
-              const next = js.indexOf(marker, pos + marker.length);
-              if (next < 0) { sections.push(js.slice(pos)); break; }
-              sections.push(js.slice(pos, next));
-              pos = next;
-            }
+          Path('front/html').mkdir(parents=True, exist_ok=True)
+          Path('front/css').mkdir(parents=True, exist_ok=True)
+          Path('front/js').mkdir(parents=True, exist_ok=True)
+          Path('front/html/nexus-erp.html').write_text(html.strip() + '\n', encoding='utf-8')
+          Path('front/css/nexus-erp.css').write_text(css, encoding='utf-8')
+          Path('front/js/nexus-erp.js').write_text(js, encoding='utf-8')
 
-            const groups = Array.from({ length: 6 }, () => '');
-            let group = 0;
-            let size = 0;
-            const target = js.length / 6;
-            for (const section of sections) {
-              if (group < 5 && size >= target && groups[group]) { group++; size = 0; }
-              groups[group] += section;
-              size += section.length;
-            }
+          source.unlink()
+          for old in Path('front/js').glob('nexus-erp-*.js'):
+              old.unlink()
+          for keep in ('front/html/.gitkeep', 'front/css/.gitkeep', 'front/js/.gitkeep'):
+              p = Path(keep)
+              if p.exists(): p.unlink()
 
-            stripped = stripped.replace('</body>', Array.from({length:6}, (_,i) => `<script src="../js/nexus-erp-${String(i+1).padStart(2,'0')}.js"></script>`).join('\n') + '\n</body>');
-            const finalHtml = stripped.trim() + '\n';
-
-            const makeBlob = async content => (await github.rest.git.createBlob({ owner, repo, content: Buffer.from(content, 'utf8').toString('base64'), encoding: 'base64' })).data.sha;
-            const ref = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` });
-            const tree = await github.rest.git.createTree({
-              owner, repo, base_tree: ref.data.object.sha,
-              tree: [
-                {path:'front/html/nexus-erp.html',mode:'100644',type:'blob',sha:await makeBlob(finalHtml)},
-                {path:'front/css/nexus-erp.css',mode:'100644',type:'blob',sha:await makeBlob(css)},
-                {path:'front/js/nexus-erp-01.js',mode:'100644',type:'blob',sha:await makeBlob(groups[0])},
-                {path:'front/js/nexus-erp-02.js',mode:'100644',type:'blob',sha:await makeBlob(groups[1])},
-                {path:'front/js/nexus-erp-03.js',mode:'100644',type:'blob',sha:await makeBlob(groups[2])},
-                {path:'front/js/nexus-erp-04.js',mode:'100644',type:'blob',sha:await makeBlob(groups[3])},
-                {path:'front/js/nexus-erp-05.js',mode:'100644',type:'blob',sha:await makeBlob(groups[4])},
-                {path:'front/js/nexus-erp-06.js',mode:'100644',type:'blob',sha:await makeBlob(groups[5])},
-                {path:'nexus-erp.html',sha:null},
-                {path:'front/html/.gitkeep',sha:null},
-                {path:'front/css/.gitkeep',sha:null},
-                {path:'front/js/.gitkeep',sha:null}
-              ]
-            });
-            const commit = await github.rest.git.createCommit({ owner, repo, message:'chore: split frontend assets', tree:tree.data.sha, parents:[ref.data.object.sha] });
-            await github.rest.git.updateRef({ owner, repo, ref:`heads/${branch}`, sha:commit.data.sha });
-            core.info(`Created ${commit.data.sha}`);
+          subprocess.run(['git', 'add', '-A'], check=True)
+          subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
+          subprocess.run(['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'], check=True)
+          subprocess.run(['git', 'commit', '-m', 'chore: split frontend assets'], check=True)
+          subprocess.run(['git', 'push', 'origin', 'HEAD:feature/frontend-split-final'], check=True)
 
       - uses: actions/setup-dotnet@v4
       - name: Restore
