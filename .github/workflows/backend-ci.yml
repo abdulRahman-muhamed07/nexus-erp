@@ -10,6 +10,7 @@ on:
       - '.github/workflows/backend-ci.yml'
       - 'nexus-erp.html'
       - 'front/**'
+      - 'scripts/split_frontend.py'
   pull_request:
     paths:
       - 'src/**'
@@ -19,9 +20,6 @@ on:
       - 'nexus-erp.html'
       - 'front/**'
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,74 +27,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Split frontend once
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/frontend-split-final' && !contains(github.event.head_commit.message, 'chore: split frontend assets') }}
-        shell: python
-        run: |
-          from pathlib import Path
-          import subprocess
-          import urllib.request
-
-          source = Path('source-nexus-erp.html')
-          urllib.request.urlretrieve('https://raw.githubusercontent.com/abdulRahman-muhamed07/nexus-erp/master/nexus-erp.html', source)
-          text = source.read_text(encoding='utf-8')
-
-          style_open = text.find('<style')
-          style_start = text.find('>', style_open) + 1
-          style_close = text.find('</style>', style_start)
-          if style_open < 0 or style_start <= 0 or style_close < 0:
-              raise SystemExit('Inline CSS block not found or malformed')
-          css = text[style_start:style_close].strip() + '\n'
-          html = text[:style_open] + '<link rel="stylesheet" href="../css/nexus-erp.css">' + text[style_close + len('</style>'):]
-
-          inline = []
-          pos = 0
-          while True:
-              start = html.find('<script', pos)
-              if start < 0: break
-              end = html.find('>', start)
-              close = html.find('</script>', end + 1)
-              if end < 0 or close < 0: raise SystemExit('Malformed script block')
-              if 'src=' not in html[start:end+1].lower():
-                  inline.append(html[end+1:close])
-              pos = close + len('</script>')
-          if not inline: raise SystemExit('Inline JavaScript block not found')
-          js = '\n\n'.join(x.strip() for x in inline if x.strip()).strip() + '\n'
-          html = html.replace('<script>' + inline[0] + '</script>', '', 1) if len(inline) == 1 else html
-          if '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>' in html:
-              # Keep the external Chart.js script and remove only the inline application script.
-              start = html.find('<script', html.find('chart.umd.min.js'))
-              inline_start = html.find('<script', start + 1)
-              if inline_start >= 0:
-                  inline_end = html.find('</script>', inline_start)
-                  html = html[:inline_start] + html[inline_end + len('</script>'):]
-          else:
-              start = html.find('<script>')
-              if start >= 0:
-                  end = html.find('</script>', start)
-                  html = html[:start] + html[end + len('</script>'):]
-          html = html.replace('</body>', '<script src="../js/nexus-erp.js"></script>\n</body>', 1)
-
-          Path('front/html').mkdir(parents=True, exist_ok=True)
-          Path('front/css').mkdir(parents=True, exist_ok=True)
-          Path('front/js').mkdir(parents=True, exist_ok=True)
-          Path('front/html/nexus-erp.html').write_text(html.strip() + '\n', encoding='utf-8')
-          Path('front/css/nexus-erp.css').write_text(css, encoding='utf-8')
-          Path('front/js/nexus-erp.js').write_text(js, encoding='utf-8')
-
-          source.unlink()
-          for old in Path('front/js').glob('nexus-erp-*.js'):
-              old.unlink()
-          for keep in ('front/html/.gitkeep', 'front/css/.gitkeep', 'front/js/.gitkeep'):
-              p = Path(keep)
-              if p.exists(): p.unlink()
-
-          subprocess.run(['git', 'add', '-A'], check=True)
-          subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
-          subprocess.run(['git', 'config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com'], check=True)
-          subprocess.run(['git', 'commit', '-m', 'chore: split frontend assets'], check=True)
-          subprocess.run(['git', 'push', 'origin', 'HEAD:feature/frontend-split-final'], check=True)
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/frontend-split-final' && hashFiles('scripts/split_frontend.py') != '' }}
+        run: python scripts/split_frontend.py
 
       - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
       - name: Restore
         run: dotnet restore XeoTechErp.sln
       - name: Build
