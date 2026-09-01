@@ -2,15 +2,15 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}") = "XeoTechErp.Domain", "XeoTechErp.Domain\XeoTechErp.Domain.csproj", "{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}"
+Project("{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}") = "XeoTechErp.Domain", "src\XeoTechErp.Domain\XeoTechErp.Domain.csproj", "{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}"
 EndProject
-Project("{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}") = "XeoTechErp.Application", "XeoTechErp.Application\XeoTechErp.Application.csproj", "{4D5B0B7E-31D2-45BA-A75E-6A2A6D0D12D7}"
+Project("{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}") = "XeoTechErp.Application", "src\XeoTechErp.Application\XeoTechErp.Application.csproj", "{4D5B0B7E-31D2-45BA-A75E-6A2A6D0D12D7}"
 EndProject
-Project("{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}") = "XeoTechErp.Infrastructure", "XeoTechErp.Infrastructure\XeoTechErp.Infrastructure.csproj", "{C1B4A7E3-1A77-4AA2-9E8A-6CB49A0C2E55}"
+Project("{DA5C0A59-6C13-4E8C-BF84-0A0F7D1C04A1}") = "XeoTechErp.Infrastructure", "src\XeoTechErp.Infrastructure\XeoTechErp.Infrastructure.csproj", "{C1B4A7E3-1A77-4AA2-9E8A-6CB49A0C2E55}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XeoTechErp.Api", "XeoTechErp.Api\XeoTechErp.Api.csproj", "{0752192C-ED5A-45BE-999A-3547FC51565A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XeoTechErp.Api", "src\XeoTechErp.Api\XeoTechErp.Api.csproj", "{0752192C-ED5A-45BE-999A-3547FC51565A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XeoTechErp.Tests", "XeoTechErp.Tests\XeoTechErp.Tests.csproj", "{A7D9A3E7-AB61-40D2-B09D-52DFDF06A4B0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XeoTechErp.Tests", "tests\XeoTechErp.Tests\XeoTechErp.Tests.csproj", "{A7D9A3E7-AB61-40D2-B09D-52DFDF06A4B0}"
 EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
