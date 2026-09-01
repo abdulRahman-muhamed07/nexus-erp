@@ -3,7 +3,7 @@ using System.Text;
 using XeoTechErp.Application.Abstractions.Authentication;
 using XeoTechErp.Application.Abstractions.Persistence;
 using XeoTechErp.Application.Common;
-using XeoTechErp.Application.Features.Auth.Contracts;
+using XeoTechErp.Application.Contracts.Auth;
 using XeoTechErp.Domain.Entities;
 using XeoTechErp.Domain.Enums;
 
