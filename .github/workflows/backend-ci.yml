@@ -2,18 +2,20 @@ name: Backend CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, feature/frontend-split-final ]
     paths:
       - 'src/**'
       - 'tests/**'
       - '*.sln'
       - '.github/workflows/backend-ci.yml'
+      - 'nexus-erp.html'
   pull_request:
     paths:
       - 'src/**'
       - 'tests/**'
       - '*.sln'
       - '.github/workflows/backend-ci.yml'
+      - 'nexus-erp.html'
 
 permissions:
   contents: write
@@ -30,6 +32,7 @@ jobs:
         run: |
           from pathlib import Path
           import re
+          import subprocess
 
           source = Path('nexus-erp.html')
           html = source.read_text(encoding='utf-8')
@@ -44,21 +47,42 @@ jobs:
               raise SystemExit('Inline JavaScript block not found')
           js = '\n\n'.join(s.strip() for s in scripts if s.strip()) + '\n'
           html = re.sub(r'<script\b(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?</script>', '', html, flags=re.I)
-          html = html.replace('</body>', '<script src="../js/nexus-erp.js"></script>\n</body>', 1)
+
+          scripts_html = '\n'.join(f'<script src="../js/nexus-erp-{i:02d}.js"></script>' for i in range(1, 7))
+          html = html.replace('</body>', scripts_html + '\n</body>', 1)
 
           Path('front/html').mkdir(parents=True, exist_ok=True)
           Path('front/css').mkdir(parents=True, exist_ok=True)
           Path('front/js').mkdir(parents=True, exist_ok=True)
           Path('front/html/nexus-erp.html').write_text(html.strip() + '\n', encoding='utf-8')
           Path('front/css/nexus-erp.css').write_text(css, encoding='utf-8')
-          Path('front/js/nexus-erp.js').write_text(js, encoding='utf-8')
+
+          parts = [Path('nexus-erp-01a.js'), Path('nexus-erp-01b.js'), Path('nexus-erp-02a.js'), Path('nexus-erp-02b.js'), Path('nexus-erp-03a.js'), Path('nexus-erp-03b.js'), Path('nexus-erp-04.js'), Path('nexus-erp-05a.js'), Path('nexus-erp-05b.js'), Path('nexus-erp-06.js')]
+          # Sources are generated below by splitting the inline script in order.
+          for path in Path('/tmp').glob('nexus-unused-*'): path.unlink()
+          source_js = '\n\n'.join(s.strip() for s in scripts if s.strip())
+          lines = source_js.splitlines(keepends=True)
+          target_count = 6
+          chunk = max(1, len(lines) // target_count)
+          chunks = []
+          start = 0
+          for i in range(target_count):
+              if i == target_count - 1:
+                  end = len(lines)
+              else:
+                  end = min(len(lines), start + chunk)
+                  while end < len(lines) and not lines[end-1].endswith('\n'):
+                      end += 1
+              chunks.append(''.join(lines[start:end]))
+              start = end
+          for i, content in enumerate(chunks, 1):
+              Path(f'front/js/nexus-erp-{i:02d}.js').write_text(content, encoding='utf-8')
+
           source.unlink()
           for keep in ('front/html/.gitkeep', 'front/css/.gitkeep', 'front/js/.gitkeep'):
               p = Path(keep)
               if p.exists(): p.unlink()
 
-          # Restore this workflow to the base version so the generated commit contains only frontend files.
-          import subprocess
           subprocess.run(['git', 'checkout', 'HEAD', '--', '.github/workflows/backend-ci.yml'], check=True)
           subprocess.run(['git', 'add', '-A'], check=True)
           subprocess.run(['git', 'config', 'user.name', 'github-actions[bot]'], check=True)
@@ -67,15 +91,9 @@ jobs:
           subprocess.run(['git', 'push', 'origin', 'HEAD:feature/frontend-split-final'], check=True)
 
       - uses: actions/setup-dotnet@v4
-        if: ${{ hashFiles('*.sln') != '' }}
-        with:
-          dotnet-version: '10.0.x'
       - name: Restore
-        if: ${{ hashFiles('*.sln') != '' }}
         run: dotnet restore XeoTechErp.sln
       - name: Build
-        if: ${{ hashFiles('*.sln') != '' }}
         run: dotnet build XeoTechErp.sln --configuration Release --no-restore
       - name: Test
-        if: ${{ hashFiles('*.sln') != '' }}
         run: dotnet test XeoTechErp.sln --configuration Release --no-build --verbosity normal
