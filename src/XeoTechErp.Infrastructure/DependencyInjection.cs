@@ -17,7 +17,7 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
 
-        services.AddDbContext<XeoTechDbContext>(options => options.UseSqlite(connectionString));
+        services.AddDbContext<XeoTechDbContext>(options => options.UseSqlServer(connectionString));
         services.AddInfrastructureHealthChecks();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
