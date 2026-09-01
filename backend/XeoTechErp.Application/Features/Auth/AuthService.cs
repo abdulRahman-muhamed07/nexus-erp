@@ -2,13 +2,12 @@ using System.Security.Cryptography;
 using System.Text;
 using XeoTechErp.Application.Abstractions.Authentication;
 using XeoTechErp.Application.Abstractions.Persistence;
-using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Common;
-using XeoTechErp.Application.Contracts.Auth;
+using XeoTechErp.Application.Features.Auth.Contracts;
 using XeoTechErp.Domain.Entities;
 using XeoTechErp.Domain.Enums;
 
-namespace XeoTechErp.Application.Services;
+namespace XeoTechErp.Application.Features.Auth;
 
 public sealed class AuthService(
     IUserRepository users,
@@ -70,6 +69,8 @@ public sealed class AuthService(
             return Result<AuthResponse>.Failure("INVALID_REFRESH_TOKEN", "Invalid or expired refresh token.");
 
         stored.RevokedAt = DateTime.UtcNow;
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         return await IssueTokensAsync(stored.User, cancellationToken);
     }
 
