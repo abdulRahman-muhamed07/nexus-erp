@@ -1,67 +1,91 @@
-# XeoTech ERP - Business Suite
+# Nexus ERP — Business Suite
 
-A complete, client-side Enterprise Resource Planning (ERP) application built with vanilla HTML, CSS, and JavaScript. Runs entirely in the browser with data persisted to `localStorage` - no backend required.
+Nexus ERP is a full-stack business management system with a vanilla HTML/CSS/JavaScript frontend and an ASP.NET Core backend.
 
-## Features
+## Architecture
 
-- **Dashboard** - Revenue KPIs, sales-by-category charts, top products, and live activity feed
-- **Sales Orders** - Create, edit, view, filter, sort, and delete orders with automatic stock allocation
-- **Quotes** - Draft / Sent / Approved pipeline with one-click conversion into a live order
-- **Role-Based Permissions** - Four roles with a strict capability ladder (create/edit/delete/export) plus module-level visibility: Viewer can't open Finance/HR/Settings, Analyst is read-only + exports (no HR), Manager has full operations but no deletions, Administrator is unrestricted. Restricted modules are hidden in the sidebar and direct navigation is blocked.
-- **Payment Terms & Credit Limits** - Per-customer terms (Due on Receipt / Net 15 / Net 30 / Net 45 / Net 60) that drive invoice due dates, configurable credit limits with a live used/limit indicator, over-limit and account-hold blocking on new orders
-- **Accounts Receivable Aging** - Unpaid invoices bucketed into Current / 1-30 / 31-60 / 61-90 / 90+ days with bucket totals in Finance
-- **Budget vs Actual** - Set a monthly operating budget per expense category (Settings - Budget & Planning) and compare actual spend with variance and on-track/over status in Finance
-- **Cash Flow Statement** - Operating / investing / financing breakdown for the current month from real collections, expenses, and asset purchases, plus a trailing-12-month net-cash trend chart
-- **Inventory Costing & Stock Age** - Weighted-average costing on PO receipts and stock-in adjustments, plus a stock-aging panel (0-30 / 31-60 / 61-90 / 90+ days) and per-item age column
-- **Fixed Assets & Depreciation** - Asset register with straight-line depreciation schedules, accumulated depreciation, net book value, disposal flow, and monthly depreciation reporting
-- **Audit Log** - Searchable trail of every action (who/what/when) across all modules with user/module filters and CSV export; visible to Manager & Administrator
-- **Configurable Billing** - Tax rate, shipping fee, and free-shipping threshold set in Settings, applied to new orders and quotes, plus per-order discount %
-- **Returns & Refunds** - Record a return on a Delivered order (restore stock, log movement, apply refund) with refund-aware payment status
-- **Auto-PO** - One-click purchase order generation for every item below its reorder level
-- **Inventory** - Stock levels, low-stock alerts, valuation, quick adjustments, and a full stock-movement history (sales, cancellations, PO receipts, manual adjustments)
-- **Payments** - Order-level payment tracking with Paid / Partially Paid / Unpaid status
-- **Invoices** - Auto-generated from Delivered orders, linked back to the order, with Mark Paid flow that syncs to the order
-- **Procurement** - Purchase orders (approve - ship - receive) and supplier management
-- **Customers** - CRM with tiers, lifetime value, and flags by country
-- **Human Resources** - Employee directory, departments, and payroll overview
-- **Finance** - Revenue vs expenses, profit margin, receivables, AR aging, and invoice management
-- **Reports** - Revenue vs target, top customers, and CSV/JSON exports
-- **Settings** - Profile, light/dark theme, preferences, backup, and demo-data reset
-- **Extras** - Global quick search (`/`), notifications, toast feedback, CSV exports
+The backend follows Clean Architecture:
+
+```text
+src/
+├── XeoTechErp.Api            # HTTP layer, controllers, middleware
+├── XeoTechErp.Application    # use cases, contracts, abstractions
+├── XeoTechErp.Domain         # entities, enums, domain rules
+└── XeoTechErp.Infrastructure # EF Core, repositories, authentication, health checks
+```
+
+The frontend is kept separately under `front/`:
+
+```text
+front/
+├── html/
+├── css/
+└── js/
+```
+
+## Backend stack
+
+- .NET 10 / ASP.NET Core Web API
+- C#
+- Entity Framework Core
+- SQL Server/relational persistence through the Infrastructure layer
+- JWT authentication with refresh tokens
+- AutoMapper
+- xUnit tests
+- GitHub Actions CI
+
+## Backend features
+
+- Authentication and refresh-token flow
+- Customers and suppliers
+- Products and inventory
+- Sales orders and quotes
+- Payments, invoices, returns
+- Procurement and purchase orders
+- HR and employees
+- Finance, budgets, expenses, assets and depreciation
+- Reports and dashboard metrics
+- Notifications and audit logging
+- Health checks and centralized exception handling
+
+## Frontend
+
+The frontend is a standalone vanilla JavaScript client. Its files are separated into HTML, CSS and JavaScript under `front/`.
 
 ## Run locally
 
+### Backend
+
 ```bash
-python -m http.server 8080
+dotnet restore XeoTechErp.sln
+dotnet build XeoTechErp.sln
+dotnet test XeoTechErp.sln
 ```
 
-Then open http://localhost:8080/nexus-erp.html and sign in with a demo account:
+Then run:
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Administrator | `admin@nexuserp.io` | `admin123` |
-| Manager | `manager@nexuserp.io` | `manager123` |
-| Analyst | `analyst@nexuserp.io` | `analyst123` |
-| Viewer | `viewer@nexuserp.io` | `viewer123` |
+```bash
+dotnet run --project src/XeoTechErp.Api/XeoTechErp.Api.csproj
+```
 
-## Tech
+### Frontend
 
-- Vanilla JS (ES6+)
-- Chart.js 4 for visualizations
-- Font Awesome 6 icons
-- LocalStorage persistence
+From the repository root:
 
-## Reset
+```bash
+python -m http.server 8080 -d front
+```
 
-Use **Settings - Reset Demo Data** to regenerate the demo dataset at any time.
+Then open the frontend entry page from the `front/html` directory using the server URL.
 
-## Backend API (under construction)
+## Repository structure
 
-A .NET backend lives in the same repository under `backend/` so the whole project - client and server - ships together.
+- `src/` — .NET backend
+- `front/` — frontend assets
+- `tests/` — automated tests
+- `docs/` — architecture and configuration documentation
+- `XeoTechErp.sln` — backend solution
 
-- `backend/XeoTechErp.sln` - solution to open in Visual Studio
-- `backend/XeoTechErp.Api/` - ASP.NET Core Web API (net10.0) + EF Core 8 + SQLite
-- `backend/XeoTechErp.Api/Models/` - entities mirroring the front-end data model (Product, Customer, Order/OrderItem, Quote/QuoteItem, Invoice, Payment, Return, PurchaseOrder, StockMovement, Asset, Budget, AppConfig, AuditLog, Users, suppliers, employees, notifications, activities)
-- `backend/XeoTechErp.Api/Data/` - EF Core `DbContext` plus the generated `InitialCreate` schema migration (22 tables)
+## Quality gates
 
-Run it with `dotnet run --project backend/XeoTechErp.Api` (or F5 in Visual Studio). It creates `xeotech-erp.db`, applies the migration, seeds the admin account (`admin@nexuserp.io` / `admin123`) and opens the OpenAPI document at `/openapi/v1.json`. Controllers and auth are not implemented yet - the schema is the current deliverable.
+Every backend change is checked by GitHub Actions with restore, Release build and automated tests.
