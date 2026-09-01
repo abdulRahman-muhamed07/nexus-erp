@@ -26,5 +26,5 @@ public sealed class Result<T> : Result
     public T? Value { get; }
 
     public static Result<T> Success(T value) => new(true, value, null);
-    public static Result<T> Failure(string code, string message) => new(false, default, new Error(code, message));
+    public static new Result<T> Failure(string code, string message) => new(false, default, new Error(code, message));
 }
