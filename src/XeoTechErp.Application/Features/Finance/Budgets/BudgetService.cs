@@ -6,12 +6,12 @@ using XeoTechErp.Domain.Entities;
 namespace XeoTechErp.Application.Features.Finance.Budgets;
 
 public sealed class BudgetService(
-    IFinanceRepository repository,
+    IBudgetRepository repository,
     IUnitOfWork unitOfWork,
     IMapper mapper) : IBudgetService
 {
     public async Task<IReadOnlyList<BudgetResponse>> GetAsync(CancellationToken cancellationToken = default)
-        => mapper.Map<IReadOnlyList<BudgetResponse>>(await repository.GetBudgetsAsync(cancellationToken));
+        => mapper.Map<IReadOnlyList<BudgetResponse>>(await repository.GetAllAsync(cancellationToken));
 
     public async Task<Result<BudgetResponse>> UpsertAsync(UpsertBudgetRequest request, CancellationToken cancellationToken = default)
     {
@@ -19,12 +19,12 @@ public sealed class BudgetService(
             return Result<BudgetResponse>.Failure("BUDGET_INVALID", "Invalid budget data.");
 
         var category = request.Category.Trim();
-        var budget = await repository.GetBudgetByCategoryAsync(category, cancellationToken);
+        var budget = await repository.GetByCategoryAsync(category, cancellationToken);
 
         if (budget is null)
         {
             budget = new Budget { Category = category, MonthlyAmount = request.MonthlyAmount };
-            repository.AddBudget(budget);
+            repository.Add(budget);
         }
         else
         {
@@ -37,11 +37,11 @@ public sealed class BudgetService(
 
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var budget = await repository.GetBudgetByIdAsync(id, cancellationToken);
+        var budget = await repository.GetByIdAsync(id, cancellationToken);
         if (budget is null)
             return Result.Failure("BUDGET_NOT_FOUND", "Budget was not found.");
 
-        repository.RemoveBudget(budget);
+        repository.Remove(budget);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
