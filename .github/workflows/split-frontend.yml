@@ -4,12 +4,9 @@ on:
   push:
     branches: [ "chore/split-frontend-assets" ]
 
-permissions:
-  contents: write
-
 jobs:
   split:
-    if: ${{ !contains(github.event.head_commit.message, 'chore: split frontend assets') }}
+    if: ${{ !contains(github.event.head_commit.message, 'chore: frontend split artifact') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,10 +18,8 @@ jobs:
           import re
 
           source = Path("nexus-erp.html")
-          if not source.exists():
-              raise SystemExit("nexus-erp.html was not found")
-
           html = source.read_text(encoding="utf-8")
+
           style_match = re.search(r"<style\b[^>]*>(.*?)</style>", html, re.IGNORECASE | re.DOTALL)
           if not style_match:
               raise SystemExit("Inline <style> block was not found")
@@ -43,21 +38,20 @@ jobs:
           Path("front/html").mkdir(parents=True, exist_ok=True)
           Path("front/css").mkdir(parents=True, exist_ok=True)
           Path("front/js").mkdir(parents=True, exist_ok=True)
-
           Path("front/html/nexus-erp.html").write_text(html.strip() + "\n", encoding="utf-8")
           Path("front/css/nexus-erp.css").write_text(css, encoding="utf-8")
           Path("front/js/nexus-erp.js").write_text(js, encoding="utf-8")
 
-          source.unlink()
-          for legacy in (Path("front/html/.gitkeep"), Path("front/css/.gitkeep"), Path("front/js/.gitkeep")):
-              if legacy.exists():
-                  legacy.unlink()
-
-      - name: Commit generated frontend structure
+      - name: Package frontend
         run: |
-          rm -f .github/workflows/split-frontend.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore: split frontend assets"
-          git push origin HEAD:chore/split-frontend-assets
+          rm -rf frontend-split
+          mkdir -p frontend-split/front/html frontend-split/front/css frontend-split/front/js
+          cp front/html/nexus-erp.html frontend-split/front/html/
+          cp front/css/nexus-erp.css frontend-split/front/css/
+          cp front/js/nexus-erp.js frontend-split/front/js/
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-erp-frontend-split
+          path: frontend-split/
