@@ -4,54 +4,102 @@ on:
   push:
     branches: [ "chore/split-frontend-assets" ]
 
+permissions:
+  contents: write
+
 jobs:
   split:
-    if: ${{ !contains(github.event.head_commit.message, 'chore: frontend split artifact') }}
+    if: ${{ !contains(github.event.head_commit.message, 'chore: split frontend assets') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Split monolithic frontend
-        shell: python
-        run: |
-          from pathlib import Path
-          import re
-
-          source = Path("nexus-erp.html")
-          html = source.read_text(encoding="utf-8")
-
-          style_match = re.search(r"<style\b[^>]*>(.*?)</style>", html, re.IGNORECASE | re.DOTALL)
-          if not style_match:
-              raise SystemExit("Inline <style> block was not found")
-
-          css = style_match.group(1).strip() + "\n"
-          html = html[:style_match.start()] + '<link rel="stylesheet" href="../css/nexus-erp.css">' + html[style_match.end():]
-
-          inline_scripts = re.findall(r"<script\b(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>", html, re.IGNORECASE | re.DOTALL)
-          if not inline_scripts:
-              raise SystemExit("No inline JavaScript blocks were found")
-
-          js = "\n\n".join(block.strip() for block in inline_scripts if block.strip()).strip() + "\n"
-          html = re.sub(r"<script\b(?![^>]*\bsrc\s*=)[^>]*>.*?</script>", "", html, flags=re.IGNORECASE | re.DOTALL)
-          html = html.replace("</body>", '<script src="../js/nexus-erp.js"></script>\n</body>", 1)
-
-          Path("front/html").mkdir(parents=True, exist_ok=True)
-          Path("front/css").mkdir(parents=True, exist_ok=True)
-          Path("front/js").mkdir(parents=True, exist_ok=True)
-          Path("front/html/nexus-erp.html").write_text(html.strip() + "\n", encoding="utf-8")
-          Path("front/css/nexus-erp.css").write_text(css, encoding="utf-8")
-          Path("front/js/nexus-erp.js").write_text(js, encoding="utf-8")
-
-      - name: Package frontend
-        run: |
-          rm -rf frontend-split
-          mkdir -p frontend-split/front/html frontend-split/front/css frontend-split/front/js
-          cp front/html/nexus-erp.html frontend-split/front/html/
-          cp front/css/nexus-erp.css frontend-split/front/css/
-          cp front/js/nexus-erp.js frontend-split/front/js/
-
-      - name: Upload frontend artifact
-        uses: actions/upload-artifact@v4
+      - name: Split frontend through GitHub API
+        uses: actions/github-script@v7
         with:
-          name: nexus-erp-frontend-split
-          path: frontend-split/
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const branch = context.ref.replace('refs/heads/', '');
+
+            const { data: file } = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path: 'nexus-erp.html',
+              ref: branch
+            });
+
+            if (Array.isArray(file) || file.type !== 'file') {
+              core.setFailed('nexus-erp.html was not found as a file');
+              return;
+            }
+
+            const htmlSource = Buffer.from(file.content, 'base64').toString('utf8');
+            const styleMatch = htmlSource.match(/<style\b[^>]*>([\s\S]*?)<\/style>/i);
+            if (!styleMatch) {
+              core.setFailed('Inline <style> block was not found');
+              return;
+            }
+
+            const css = styleMatch[1].trim() + '\n';
+            let html = htmlSource.slice(0, styleMatch.index)
+              + '<link rel="stylesheet" href="../css/nexus-erp.css">'
+              + htmlSource.slice(styleMatch.index + styleMatch[0].length);
+
+            const scriptRegex = /<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi;
+            const scripts = [...html.matchAll(scriptRegex)].map(m => m[1].trim()).filter(Boolean);
+            if (!scripts.length) {
+              core.setFailed('Inline JavaScript was not found');
+              return;
+            }
+
+            const js = scripts.join('\n\n') + '\n';
+            html = html.replace(scriptRegex, '');
+            html = html.replace('</body>', '<script src="../js/nexus-erp.js"></script>\n</body>');
+            html = html.trim() + '\n';
+
+            const makeBlob = async (content) => {
+              const result = await github.rest.git.createBlob({
+                owner,
+                repo,
+                content: Buffer.from(content, 'utf8').toString('base64'),
+                encoding: 'base64'
+              });
+              return result.data.sha;
+            };
+
+            const htmlSha = await makeBlob(html);
+            const cssSha = await makeBlob(css);
+            const jsSha = await makeBlob(js);
+
+            const current = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` });
+            const tree = await github.rest.git.createTree({
+              owner,
+              repo,
+              base_tree: current.data.object.sha,
+              tree: [
+                { path: 'front/html/nexus-erp.html', mode: '100644', type: 'blob', sha: htmlSha },
+                { path: 'front/css/nexus-erp.css', mode: '100644', type: 'blob', sha: cssSha },
+                { path: 'front/js/nexus-erp.js', mode: '100644', type: 'blob', sha: jsSha },
+                { path: 'nexus-erp.html', mode: '100644', type: 'blob', sha: null },
+                { path: 'front/html/.gitkeep', mode: '100644', type: 'blob', sha: null },
+                { path: 'front/css/.gitkeep', mode: '100644', type: 'blob', sha: null },
+                { path: 'front/js/.gitkeep', mode: '100644', type: 'blob', sha: null },
+                { path: '.github/workflows/split-frontend.yml', mode: '100644', type: 'blob', sha: null }
+              ]
+            });
+
+            const commit = await github.rest.git.createCommit({
+              owner,
+              repo,
+              message: 'chore: split frontend assets',
+              tree: tree.data.sha,
+              parents: [current.data.object.sha]
+            });
+
+            await github.rest.git.updateRef({
+              owner,
+              repo,
+              ref: `heads/${branch}`,
+              sha: commit.data.sha
+            });
+
+            core.info(`Created frontend split commit ${commit.data.sha}`);
