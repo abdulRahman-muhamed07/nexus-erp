@@ -39,5 +39,7 @@ public class EfRepository<T>(XeoTechDbContext db) : IRepository<T> where T : cla
     public Task AddAsync(T entity, CancellationToken cancellationToken = default) =>
         Set.AddAsync(entity, cancellationToken).AsTask();
 
+    public void Add(T entity) => Set.Add(entity);
+
     public void Remove(T entity) => Set.Remove(entity);
 }
