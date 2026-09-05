@@ -33,6 +33,32 @@ public sealed class Order
         CustomerId = customerId;
     }
 
+    public static Order FromQuote(Quote quote)
+    {
+        if (quote is null) throw new ArgumentNullException(nameof(quote));
+        if (quote.CustomerId <= 0) throw new DomainRuleException("Customer is required.");
+        if (quote.Items.Count == 0) throw new DomainRuleException("Quote must contain at least one item.");
+
+        var order = new Order(quote.CustomerId)
+        {
+            QuoteId = quote.Id,
+            Tax = quote.Tax,
+            Shipping = quote.Shipping,
+            DiscountPct = quote.DiscountPct
+        };
+
+        foreach (var item in quote.Items)
+        {
+            if (item.Qty <= 0 || item.Price < 0)
+                throw new DomainRuleException("Quote contains an invalid item.");
+
+            order._items.Add(new OrderItem(item.ProductId, item.Name, item.Qty, item.Price));
+        }
+
+        order.RecalculateTotals();
+        return order;
+    }
+
     public void AddItem(Product product, int quantity)
     {
         if (product is null) throw new ArgumentNullException(nameof(product));
