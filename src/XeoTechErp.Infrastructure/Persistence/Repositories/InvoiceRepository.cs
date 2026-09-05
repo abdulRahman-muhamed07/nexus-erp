@@ -9,9 +9,13 @@ public sealed class InvoiceRepository(XeoTechDbContext db) : IInvoiceRepository
 {
     public async Task<IReadOnlyList<Invoice>> GetAllAsync(InvoiceStatus? status, CancellationToken cancellationToken = default)
     {
-        var query = db.Invoices.AsNoTracking().Include(x => x.Customer).Include(x => x.Order);
+        IQueryable<Invoice> query = db.Invoices
+            .AsNoTracking()
+            .Include(x => x.Customer)
+            .Include(x => x.Order);
+
         if (status.HasValue)
-            query = query.Where(x => x.Status == status);
+            query = query.Where(x => x.Status == status.Value);
 
         return await query.OrderByDescending(x => x.Issued).ToListAsync(cancellationToken);
     }
