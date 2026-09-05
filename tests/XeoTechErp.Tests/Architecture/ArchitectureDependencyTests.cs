@@ -8,7 +8,7 @@ public sealed class ArchitectureDependencyTests
     private static readonly Assembly Domain = typeof(XeoTechErp.Domain.Entities.Product).Assembly;
     private static readonly Assembly Application = typeof(XeoTechErp.Application.Abstractions.Persistence.IUnitOfWork).Assembly;
     private static readonly Assembly Infrastructure = typeof(XeoTechErp.Infrastructure.Persistence.XeoTechDbContext).Assembly;
-    private static readonly Assembly Api = typeof(XeoTechErp.Api.Program).Assembly;
+    private static readonly Assembly Api = typeof(global::Program).Assembly;
 
     [Fact]
     public void Domain_must_not_reference_infrastructure_application_api_or_ef_core()
