@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using XeoTechErp.Application.Services;
+using XeoTechErp.Application.Abstractions.Services;
 
 namespace XeoTechErp.Api.Controllers.Dashboard;
 
