@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using XeoTechErp.Application.Abstractions.Persistence;
 
 namespace XeoTechErp.Infrastructure.Persistence;
