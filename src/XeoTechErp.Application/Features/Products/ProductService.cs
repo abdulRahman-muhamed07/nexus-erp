@@ -18,12 +18,13 @@ public sealed class ProductService(IProductRepository repository, IUnitOfWork un
 
     public async Task<Result<ProductDto>> CreateAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
     {
-        if (await repository.ExistsBySkuAsync(request.Sku?.Trim() ?? string.Empty, cancellationToken))
+        var sku = request.Sku?.Trim() ?? string.Empty;
+        if (await repository.ExistsBySkuAsync(sku, cancellationToken))
             return Result<ProductDto>.Failure("SKU_EXISTS", "SKU already exists.");
 
         try
         {
-            var product = new Product(request.Sku, request.Name, request.Price, request.Cost, request.Stock, request.ReorderLevel, request.Category, request.SupplierId);
+            var product = new Product(sku, request.Name, request.Price, request.Cost, request.Stock, request.ReorderLevel, request.Category, request.SupplierId);
             repository.Add(product);
             await unitOfWork.SaveChangesAsync(cancellationToken);
             return Result<ProductDto>.Success(mapper.Map<ProductDto>(product));
