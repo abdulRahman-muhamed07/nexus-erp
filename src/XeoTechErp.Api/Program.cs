@@ -7,11 +7,10 @@ using XeoTechErp.Infrastructure.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddControllers()
-    .AddApplication()
-    .AddInfrastructure(builder.Configuration)
-    .AddJwtAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
+builder.Services.AddControllers();
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJwtAuthentication(builder.Configuration, builder.Environment.IsDevelopment());
 
 builder.Services.AddOpenApi();
 
