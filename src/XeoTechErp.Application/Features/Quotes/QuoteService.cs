@@ -73,24 +73,15 @@ public sealed class QuoteService(IQuoteRepository repository, IOrderRepository o
         if (quote.Status != QuoteStatus.Approved)
             throw new InvalidOperationException("Quote must be approved first.");
 
-        var order = new Order
-        {
-            CustomerId = quote.CustomerId,
-            QuoteId = quote.Id,
-            Subtotal = quote.Subtotal,
-            Tax = quote.Tax,
-            Shipping = quote.Shipping,
-            DiscountPct = quote.DiscountPct,
-            Discount = quote.Subtotal * quote.DiscountPct / 100m,
-            Total = quote.Total
-        };
-
-        foreach (var item in quote.Items)
-            order.Items.Add(new OrderItem { ProductId = item.ProductId, Name = item.Name, Qty = item.Qty, Price = item.Price });
-
+        var order = Order.FromQuote(quote);
         quote.Status = QuoteStatus.Converted;
-        orderRepository.Add(order);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            orderRepository.Add(order);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }, cancellationToken);
+
         return order;
     }
 
