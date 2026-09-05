@@ -8,5 +8,6 @@ public interface IRepository<T> where T : class
     Task<List<TResult>> QueryAsync<TResult>(Expression<Func<T, TResult>> selector, Expression<Func<T, bool>>? predicate = null, int skip = 0, int take = int.MaxValue, CancellationToken cancellationToken = default);
     Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default);
     Task AddAsync(T entity, CancellationToken cancellationToken = default);
+    void Add(T entity);
     void Remove(T entity);
 }
