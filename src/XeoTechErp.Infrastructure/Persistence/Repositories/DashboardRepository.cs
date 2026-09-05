@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using XeoTechErp.Application.Abstractions.Persistence;
+using XeoTechErp.Application.Common.Models;
 using XeoTechErp.Domain.Enums;
 
 namespace XeoTechErp.Infrastructure.Persistence.Repositories;
