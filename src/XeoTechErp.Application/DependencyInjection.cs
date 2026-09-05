@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using XeoTechErp.Application.Abstractions.Messaging;
 using XeoTechErp.Application.Abstractions.Services;
 using XeoTechErp.Application.Common;
+using XeoTechErp.Application.Features.Activities;
 using XeoTechErp.Application.Features.Auth;
 using XeoTechErp.Application.Features.Finance.Assets;
 using XeoTechErp.Application.Features.Finance.Budgets;
@@ -23,7 +24,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddAutoMapper(typeof(ApplicationMappingProfile).Assembly);
+        services.AddAutoMapper(cfg => cfg.AddProfile<ApplicationMappingProfile>());
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICustomerService, CustomerService>();
